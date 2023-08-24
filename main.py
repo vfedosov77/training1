@@ -22,7 +22,8 @@ print(f"State dimensions: {dims}. Actions: {actions}")
 print(f"Sample state: {env.reset()}")
 
 
-fast_forward = nn.Sequential(nn.Linear(4, 64), nn.Linear(64, 32), nn.Linear(32, actions), nn.Softmax(dim=-1))
+policy_ff = nn.Sequential(nn.Linear(dims, 64), nn.Linear(64, 32), nn.Linear(32, actions), nn.Softmax(dim=-1))
+values_ff = nn.Sequential(nn.Linear(dims, 64), nn.Linear(64, 32), nn.Linear(32, 1))
 
 
 def get_episode(policy, gamma):
@@ -54,7 +55,7 @@ def create_batches(batch_size, amount, policy, gamma=0.99):
 
         for state, act, reward in reversed(items):
             G = gamma * G + reward
-            steps.append((state, act, G))
+            steps.append((state, act, G, reward))
 
             if len(steps) == size:
                 break
@@ -75,25 +76,25 @@ def create_batches(batch_size, amount, policy, gamma=0.99):
 
 
 def current_policy(state):
-    actions_prob = fast_forward(state)
+    actions_prob = policy_ff(state)
     action_prob = actions_prob[0].item()
     action = 0 if random.random() <= action_prob else 1
     return action
 
 
 def train_step(alpha, gamma=0.99):
-    global fast_forward
+    global policy_ff
 
     batches = create_batches(64, 64, current_policy, gamma)
-    optim = AdamW(fast_forward.parameters(), lr=alpha)
+    optim = AdamW(policy_ff.parameters(), lr=alpha)
 
     for batch in batches:
         optim.zero_grad()
         rewards = []
         entropias = []
 
-        for state, action, G in batch:
-            actions_probs = fast_forward(state)
+        for state, action, G, reward in batch:
+            actions_probs = policy_ff(state)
             log_prob = torch.log(actions_probs)
             action_log_prob = log_prob[action]
             #gamma_t = gamma ** step
@@ -101,11 +102,10 @@ def train_step(alpha, gamma=0.99):
             entropias.append((entropy * 0.1).reshape(1, 1))
             rewards.append((G * action_log_prob).reshape(1, 1))
 
-
         rewards = torch.sum(torch.cat(rewards))
         entropias = torch.sum(torch.cat(entropias))
         loss = -rewards #- 0.001 * entropias
-        fast_forward.zero_grad()
+        policy_ff.zero_grad()
         loss.backward()
         optim.step()
         zero = numpy.array([1.0, 0.1, 0.0, 0.0])
