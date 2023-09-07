@@ -13,6 +13,7 @@ from utils import seed_everything
 from parallel_env import *
 import cv2
 import multiprocessing
+from Policy import *
 
 num_envs = os.cpu_count()
 
@@ -47,45 +48,29 @@ def current_policy(state):
     action = 0 if random.random() <= action_prob else 1
     return action
 
-def train_step(alpha, gamma=0.99):
-    global policy_ff
-
-    policy_optim = AdamW(policy_ff.parameters(), lr=alpha)
-    values_optim = AdamW(values_ff.parameters(), lr=alpha)
-
-    for _ in tqdm(range(100)):
+def train_step(policy: PolicyBase):
+    for id in tqdm(range(10)):
         states = parallel_env.reset()
-        done_b = torch.zeros([num_envs, 1], dtype=torch.bool)
-        reswards = torch.zeros([num_envs, 1])
+        rewards_sum = torch.zeros([num_envs, 1])
+        policy.clean(num_envs)
+        steps = 0
 
-        while not done_b.all():
-            actions = policy_ff(states)
-            log_actions = torch.log(actions + 1e-6)
-            action = actions.multinomial(1).detach()
-            next_states, reward, done, _ = parallel_env.step(action)
+        while not policy.is_done():
+            steps += 1
+            actions = policy.sample_actions(states)
+            next_states, rewards, done, _ = parallel_env.step(actions)
+            rewards_sum += rewards.detach()
 
-            target = (gamma * values_ff(next_states) + reward)
-            advantage = (target - values_ff(states)) * ~done_b
-            done_b |= done
-            reswards += reward
-
-            loss_values = (advantage * advantage).mean()
-            values_optim.zero_grad()
-            loss_values.backward()
-            values_optim.step()
-
-            entropy = torch.sum(log_actions * actions, dim=-1, keepdim=True) * ~done_b
-            loss_policy = -advantage.detach() * log_actions.gather(1, action) - 0.001 * entropy
-            loss_policy = loss_policy.mean()
-            policy_optim.zero_grad()
-            loss_policy.backward()
-            policy_optim.step()
-
+            policy.set_step_reward(next_states, rewards, done)
             states = next_states
+
+        error = policy.get_and_reset_error()
+        print("Err: " + str(error/steps))
+
 
         # zero = numpy.array([1.0, 0.1, 0.0, 0.0])
         # zero = torch.from_numpy(zero).float()
-        print(reswards.mean().item())
+        print((rewards_sum).mean().item())
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -95,12 +80,24 @@ if __name__ == '__main__':
 
     dims = parallel_env.observation_space.shape[0]
     actions = parallel_env.action_space.n
-    policy_ff = nn.Sequential(nn.Linear(dims, 64), nn.Linear(64, 32), nn.Linear(32, actions), nn.Softmax(dim=-1))
-    values_ff = nn.Sequential(nn.Linear(dims, 64), nn.Linear(64, 32), nn.Linear(32, 1))
+
 
     print(f"State dimensions: {dims}. Actions: {actions}")
+    policy = FastforwardPolicy("policy", dims, [64, 128, actions])
+    train_step(policy)
 
-    train_step(0.0003)
+    ev1 = create_env('CartPole-v1')
+    state = ev1.reset()
+    done = False
+
+    while not done:
+        img = ev1.render(mode='rgb_array')
+        cv2.imshow("asd", img)
+        cv2.waitKey(50)
+        policy.clean(1)
+        act = policy.sample_actions(torch.from_numpy(state))
+        state, _, done, _ = ev1.step(act[0].item())
+
 
 
 
