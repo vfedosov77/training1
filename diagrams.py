@@ -15,7 +15,7 @@ def init_plot(x, y, z):
     global figure, plot1, plot2, colors_bar1, colors_bar2, pcolor1, pcolor2
 
     if figure is None:
-        figure, (plot1, plot2) = plt.subplots(1, 2)
+        figure, (plot1, plot2) = plt.subplots(1, 2, figsize=(12, 6))
         plot1.set_title("policy")
         plot1.set_xlabel("X")
         plot1.set_ylabel("Y")
@@ -45,7 +45,12 @@ def show_policy_2d(policy, action_id, range_x = (-1.0, 1.0), range_y = (-1.0, 1.
     plt.ion()
     colors_matrix = numpy.array(colors_matrix).ravel()
     pcolor1.set_array(colors_matrix)
-    pcolor1.set_clim(colors_matrix.min(), colors_matrix.max())
+    matrix_max = colors_matrix.max()
+    pcolor1.set_clim(colors_matrix.min(), matrix_max)
+
+    #if matrix_max < 0.55:
+    #    print("")
+
     colors_bar1.update_normal(pcolor1)
     plt.autoscale()
     plt.draw()

@@ -16,7 +16,7 @@ import multiprocessing
 from Policy import *
 from cv2 import imshow
 
-num_envs = 1 #os.cpu_count()
+num_envs = os.cpu_count()
 
 
 class PreprocessEnv(ParallelWrapper):
@@ -25,6 +25,10 @@ class PreprocessEnv(ParallelWrapper):
 
     def reset(self):
         state = self.venv.reset()
+        for i in state.shape[0]:
+            state[i][0] = 0.0
+            state[i][1] = 0.0
+
         return torch.from_numpy(state).float()
 
     def step_async(self, actions):
@@ -33,6 +37,11 @@ class PreprocessEnv(ParallelWrapper):
 
     def step_wait(self):
         next_state, reward, done, info = self.venv.step_wait()
+
+        for i in next_state.shape[0]:
+            next_state[i][0] = 0.0
+            next_state[i][1] = 0.0
+
         next_state = torch.from_numpy(next_state).float()
         reward = torch.tensor(reward).unsqueeze(1).float()
         done = torch.tensor(done).unsqueeze(1)
@@ -44,6 +53,8 @@ class PreprocessEnv1Item:
 
     def reset(self):
         state = self.env.reset()
+        state[0] = 0.0
+        state[1] = 0.0
         state = torch.Tensor([state])
         return state
 
@@ -51,6 +62,8 @@ class PreprocessEnv1Item:
         action = int(actions[0].item())
         next_state, reward, done, info = self.env.step(action)
         next_state = np.array(next_state)
+        next_state[0] = 0.0
+        next_state[1] = 0.0
         next_state = torch.Tensor([next_state])
         reward_tensor = torch.Tensor([[reward]])
         done_tensor = torch.zeros([1, 1], dtype=torch.bool)
@@ -83,6 +96,8 @@ def train_step(policy: PolicyBase):
             policy.set_step_reward(next_states, rewards, done)
             states = next_states
 
+        policy.set_fault_step(states)
+
         error = policy.get_and_reset_error()
         print("Err: " + str(error/steps))
 
@@ -106,7 +121,7 @@ if __name__ == '__main__':
     actions = 2#parallel_env.action_space.n
 
     print(f"State dimensions: {dims}. Actions: {actions}")
-    policy = FastforwardPolicy("policy", dims, [64, 128, actions])
+    policy = FastforwardPolicy("policy", dims, [64, 64, actions])
     train_step(policy)
 
     ev1 = create_env('CartPole-v1')

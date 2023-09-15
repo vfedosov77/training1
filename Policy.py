@@ -36,12 +36,15 @@ class PolicyBase(metaclass=ABCMeta):
         return self.actions
 
     def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor):
-
         reward_advantage = self._update_values(new_state, reward, done)
         self._update_policy_nn(new_state, reward_advantage)
         self.done |= done
         #self.step_coeff *= self.gamma
         self.step += 1
+
+    @abstractmethod
+    def set_fault_step(self, states):
+        pass
 
     @abstractmethod
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
@@ -70,7 +73,7 @@ class FastforwardPolicy(PolicyBase):
         self.layers_sizes = layers_sizes.copy()
         self.policy, self.policy_optim = self._create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
         layers_sizes[-1] = 1
-        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.0004)
+        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.00004)
         PolicyBase.__init__(self, name)
 
         self.error = 0.0
@@ -90,7 +93,7 @@ class FastforwardPolicy(PolicyBase):
             input_size = size
 
         if add_softmax:
-            layers["Softmax"] = torch.nn.Softmax()
+            layers["Softmax"] = torch.nn.Softmax(dim=-1)
 
         nn = torch.nn.Sequential(layers)
         optimizer = torch.optim.Adam(nn.parameters(), lr=lr)#Eve(nn.parameters(), lr=lr)
@@ -98,28 +101,35 @@ class FastforwardPolicy(PolicyBase):
 
     @overrides
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
-        self.values_optim.zero_grad()
         self.values.zero_grad()
         value = self.values(self.state)
         detached_done = done.detach()
-        target = (self.values(new_state).detach() * self.gamma + reward) * ~detached_done - detached_done * 100.0
-        advantage = (target - value) * ~self.done.detach()
+        target = self.values(new_state).detach() * self.gamma + reward #- detached_done * 100.0
+        advantage = (target - value)
         critic_loss = (advantage * advantage).mean()
         critic_loss.backward()
         self.values_optim.step()
         self.error += critic_loss.item()
 
-        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-5.0, 5.0), (-5.0, 5.0))
+        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-3.0, 3.0))
 
         return advantage.detach()
 
+    @overrides
+    def set_fault_step(self, states) -> torch.Tensor:
+        for i in range(10):
+            self.values.zero_grad()
+            value = self.values(self.state)
+            critic_loss = (value * value).mean()
+            critic_loss.backward()
+            self.values_optim.step()
 
     @overrides
     def _update_policy_nn(self, new_state: torch.Tensor, reward_advantage):
         std = torch.max(torch.abs(reward_advantage))
         reward_advantage = reward_advantage / (std + 1e-8)
 
-        check1 = self.get_checkpoint()
+        #check1 = self.get_checkpoint()
 
         self.policy.zero_grad()
         self.policy_optim.zero_grad()
@@ -127,15 +137,15 @@ class FastforwardPolicy(PolicyBase):
         log_actions = torch.log(actions_probabilities + 1e-6)
         entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done
 
-        loss: torch.Tensor = (-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.1 * entropy).mean()
+        loss: torch.Tensor = (-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.001 * entropy).mean()
 
-        loss.backward()
+        loss.backward(retain_graph=True)
         self.policy_optim.step()
 
-        show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-5.0, 5.0), (-5.0, 5.0))
+        show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
 
-        if self.get_checkpoint() < check1 - 0.04:
-            print("Error!!!!!!!!")
+        #if self.get_checkpoint() < check1 - 0.04:
+        #    print("Error!!!!!!!!")
 
 
     @overrides
