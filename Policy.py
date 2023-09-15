@@ -1,8 +1,9 @@
 import numpy as np
 import torch
+import io
 from abc import abstractmethod, ABCMeta
 from typing import *
-
+from diagrams import *
 from overrides import overrides
 
 
@@ -14,6 +15,8 @@ class PolicyBase(metaclass=ABCMeta):
         self.gamma = 0.999
         self.done: torch.Tensor = None
         self.threads_count = -1
+        self.step_coeff = 1.0
+        self.step = 0
 
     def clean(self, threads_count: int):
         if self.done is not None:
@@ -21,6 +24,8 @@ class PolicyBase(metaclass=ABCMeta):
 
         self.done = torch.zeros([threads_count, 1], dtype=torch.bool)
         self.threads_count = threads_count
+        self.step_coeff = 1.0
+        self.step = 0
 
     def is_done(self):
         return self.done.all()
@@ -31,9 +36,12 @@ class PolicyBase(metaclass=ABCMeta):
         return self.actions
 
     def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor):
+
         reward_advantage = self._update_values(new_state, reward, done)
         self._update_policy_nn(new_state, reward_advantage)
         self.done |= done
+        #self.step_coeff *= self.gamma
+        self.step += 1
 
     @abstractmethod
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
@@ -51,9 +59,15 @@ class PolicyBase(metaclass=ABCMeta):
     def get_expected_return(selfself, state):
         pass
 
+    @abstractmethod
+    def clone(self):
+        pass
+
 
 class FastforwardPolicy(PolicyBase):
     def __init__(self, name: str, input_size: int, layers_sizes: List[int]):
+        self.input_size = input_size
+        self.layers_sizes = layers_sizes.copy()
         self.policy, self.policy_optim = self._create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
         layers_sizes[-1] = 1
         self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.0004)
@@ -79,7 +93,7 @@ class FastforwardPolicy(PolicyBase):
             layers["Softmax"] = torch.nn.Softmax()
 
         nn = torch.nn.Sequential(layers)
-        optimizer = torch.optim.Adam(nn.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(nn.parameters(), lr=lr)#Eve(nn.parameters(), lr=lr)
         return nn, optimizer
 
     @overrides
@@ -95,38 +109,34 @@ class FastforwardPolicy(PolicyBase):
         self.values_optim.step()
         self.error += critic_loss.item()
 
-
-        # if critic_loss.item() > 100:
-        #     for i in range(100):
-        #         value = self.values(self.state)
-        #         target = self.values(new_state).detach() * ~self.done * self.gamma + reward - done * 100
-        #         advantage = (target - value) * ~self.done
-        #         critic_loss = (advantage * advantage).mean()
-        #         self.values.zero_grad()
-        #         critic_loss.backward()
-        #         self.values_optim.step()
-        #         print("Adv: " + str(critic_loss))
-
+        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-5.0, 5.0), (-5.0, 5.0))
 
         return advantage.detach()
 
 
     @overrides
     def _update_policy_nn(self, new_state: torch.Tensor, reward_advantage):
-        #mean = torch.mean(reward_advantage)
-        #std = torch.std(reward_advantage)
-        #reward_advantage = (reward_advantage - mean) / (std + 1e-8)
+        std = torch.max(torch.abs(reward_advantage))
+        reward_advantage = reward_advantage / (std + 1e-8)
+
+        check1 = self.get_checkpoint()
 
         self.policy.zero_grad()
         self.policy_optim.zero_grad()
         actions_probabilities = self.policy(self.state)
         log_actions = torch.log(actions_probabilities + 1e-6)
-        entropy = torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done
+        entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done
 
-        loss: torch.Tensor = (-(reward_advantage * log_actions.gather(1, self.actions)) + 0.1 * entropy).mean()
+        loss: torch.Tensor = (-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.1 * entropy).mean()
+
         loss.backward()
         self.policy_optim.step()
-        #print("after: " + str(self.policy(self.state)))
+
+        show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-5.0, 5.0), (-5.0, 5.0))
+
+        if self.get_checkpoint() < check1 - 0.04:
+            print("Error!!!!!!!!")
+
 
     @overrides
     def _sample_actions_impl(self, state) -> Tuple[List[int], torch.Tensor]:
@@ -136,3 +146,26 @@ class FastforwardPolicy(PolicyBase):
     @overrides
     def get_expected_return(self, state):
         return self.values(state)
+
+    @overrides
+    def clone(self):
+        new_policy = FastforwardPolicy(self.name, self.input_size, self.layers_sizes)
+        buffer = io.BytesIO()
+        torch.save(self.policy, buffer)
+        buffer.seek(0)
+        new_policy.policy = torch.load(buffer)
+        buffer = io.BytesIO()
+        torch.save(self.values, buffer)
+        buffer.seek(0)
+        new_policy.values = torch.load(buffer)
+        new_policy.step = self.step
+        new_policy.step_coeff = self.step_coeff
+        return new_policy
+
+    def get_checkpoint(self):
+        state = np.zeros([4])
+        state[2] = -4.0
+        state[3] = -4.0
+        state = torch.from_numpy(state).float()
+        actions = self.policy(state)
+        return actions[0].item()

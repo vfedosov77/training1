@@ -14,8 +14,9 @@ from parallel_env import *
 import cv2
 import multiprocessing
 from Policy import *
+from cv2 import imshow
 
-num_envs = os.cpu_count()
+num_envs = 1 #os.cpu_count()
 
 
 class PreprocessEnv(ParallelWrapper):
@@ -37,19 +38,37 @@ class PreprocessEnv(ParallelWrapper):
         done = torch.tensor(done).unsqueeze(1)
         return next_state, reward, done, info
 
+class PreprocessEnv1Item:
+    def __init__(self, env):
+        self.env = env
+
+    def reset(self):
+        state = self.env.reset()
+        state = torch.Tensor([state])
+        return state
+
+    def step(self, actions):
+        action = int(actions[0].item())
+        next_state, reward, done, info = self.env.step(action)
+        next_state = np.array(next_state)
+        next_state = torch.Tensor([next_state])
+        reward_tensor = torch.Tensor([[reward]])
+        done_tensor = torch.zeros([1, 1], dtype=torch.bool)
+        done_tensor[0] = done
+        return next_state, reward_tensor, done_tensor, info
+
+
 def create_env(env_name):
     env = gym.make(env_name)
     seed_everything(env)
     return env
 
-def current_policy(state):
-    actions_prob = policy_ff(state)
-    action_prob = actions_prob[0].item()
-    action = 0 if random.random() <= action_prob else 1
-    return action
+backup = None
 
 def train_step(policy: PolicyBase):
-    for id in tqdm(range(10)):
+    global backup
+
+    for id in tqdm(range(60)):
         states = parallel_env.reset()
         rewards_sum = torch.zeros([num_envs, 1])
         policy.clean(num_envs)
@@ -67,20 +86,24 @@ def train_step(policy: PolicyBase):
         error = policy.get_and_reset_error()
         print("Err: " + str(error/steps))
 
-
         # zero = numpy.array([1.0, 0.1, 0.0, 0.0])
         # zero = torch.from_numpy(zero).float()
-        print((rewards_sum).mean().item())
+        average_reward = (rewards_sum).mean().item()
+        print(average_reward)
+
+        if id == 1:
+            backup = policy.clone()
+            print("!!!!!!!!!!!!!Backup!!!!!!!!!!!!")
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
 
     env_fns = [lambda: create_env('CartPole-v1') for _ in range(num_envs)]
-    parallel_env = PreprocessEnv(ParallelEnv(env_fns))
+    parallel_env = PreprocessEnv1Item(create_env('CartPole-v1'))
 
-    dims = parallel_env.observation_space.shape[0]
-    actions = parallel_env.action_space.n
-
+    dims = 4#parallel_env.observation_space.shape[0]
+    actions = 2#parallel_env.action_space.n
 
     print(f"State dimensions: {dims}. Actions: {actions}")
     policy = FastforwardPolicy("policy", dims, [64, 128, actions])
@@ -89,6 +112,33 @@ if __name__ == '__main__':
     ev1 = create_env('CartPole-v1')
     state = ev1.reset()
     done = False
+
+    image1 = numpy.full((100, 100), 1.0)
+    image2 = numpy.full((100, 100), 1.0)
+
+    for i in range(100):
+        for j in range(100):
+            state = numpy.zeros([4])
+            state[2] = (i - 50.0) * 0.1
+            state[3] = (j - 50.0) * 0.03
+            state = torch.from_numpy(state).float()
+            actions1 = policy.policy(state)
+            actions2 = backup.policy(state)
+
+            if actions1[0] > 0.5:
+                image1[i][j] = 0.0
+
+            if actions2[0] > 0.5:
+                image2[i][j] = 0.0
+
+        image1[i][99] = 0.7
+        image1[i][97] = 0.7
+        image1[i][98] = 0.7
+
+    cv2.imshow("1", image1)
+    cv2.imshow("2", image2)
+    cv2.waitKey()
+
 
     while not done:
         img = ev1.render(mode='rgb_array')
