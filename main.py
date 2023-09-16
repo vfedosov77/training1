@@ -86,7 +86,6 @@ def train_step(policy: PolicyBase):
         rewards_sum = torch.zeros([num_envs, 1])
         policy.clean(num_envs)
         steps = 0
-        last_states = torch.tensor([-100.0, 0.0, 0.0, 0.0] * num_envs).resize(num_envs, 4)
 
         while not policy.is_done():
             steps += 1
@@ -98,11 +97,8 @@ def train_step(policy: PolicyBase):
             policy.set_step_reward(next_states, rewards, done)
             states = next_states
 
-            for i in range(num_envs):
-                if done[i].item() > 0.0 and last_states[i][0].item() < -99.0:
-                    last_states[i] = next_states[i].detach()
-
-        policy.set_fault_step(last_states)
+        #next_states = torch.tensor([0.0, 0.0, 0.0, 1.0]*50).resize(50, 4)
+        policy.set_fault_step(next_states)
 
         error = policy.get_and_reset_error()
         print("Err: " + str(error/steps))
@@ -127,7 +123,7 @@ if __name__ == '__main__':
     actions = 2#parallel_env.action_space.n
 
     print(f"State dimensions: {dims}. Actions: {actions}")
-    policy = FastforwardPolicy("policy", dims, [64, 64, actions])
+    policy = FastforwardPolicy("policy", dims, [64, 128, 64, actions])
     train_step(policy)
 
     ev1 = create_env('CartPole-v1')

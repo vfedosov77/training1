@@ -38,6 +38,7 @@ class PolicyBase(metaclass=ABCMeta):
     def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor):
         reward_advantage = self._update_values(new_state, reward, done)
         self._update_policy_nn(new_state, reward_advantage)
+
         self.done |= done
         #self.step_coeff *= self.gamma
         self.step += 1
@@ -73,7 +74,8 @@ class FastforwardPolicy(PolicyBase):
         self.layers_sizes = layers_sizes.copy()
         self.policy, self.policy_optim = self._create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
         layers_sizes[-1] = 1
-        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.00004)
+        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.0004)
+        self.values_lost = torch.nn.MSELoss()
         PolicyBase.__init__(self, name)
 
         self.error = 0.0
@@ -91,7 +93,9 @@ class FastforwardPolicy(PolicyBase):
         for id, size in enumerate(layers_sizes):
             layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size)
             input_size = size
-            layers["RLU_" + str(id)] = torch.nn.ReLU()
+
+            if id != len(layers_sizes) - 1:
+                layers["RLU_" + str(id)] = torch.nn.ReLU()
 
         if add_softmax:
             layers["Softmax"] = torch.nn.Softmax(dim=-1)
@@ -104,43 +108,41 @@ class FastforwardPolicy(PolicyBase):
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
         value = self.values(self.state)
-        detached_done = done.detach()
         target = self.values(new_state).detach() * self.gamma + reward #- detached_done * 100.0
-        advantage = (target - value)
-        critic_loss = (advantage * advantage).mean()
+        advantage = target - value
+        critic_loss = ((value - target)*(value - target)).mean()#self.values_lost(value, target)
         critic_loss.backward()
         self.values_optim.step()
         self.error += critic_loss.item()
 
-        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-3.0, 3.0))
+        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-2.0, 2.0))
 
-        return advantage.detach()
+        return advantage.detach() * ~self.done.detach();
 
     @overrides
     def set_fault_step(self, states) -> torch.Tensor:
-        for i in range(10):
-            self.values.zero_grad()
-            value = self.values(self.state)
-            critic_loss = (value * value).mean()
-            critic_loss.backward()
-            self.values_optim.step()
+        self.values.zero_grad()
+        value = self.values(states)
+        target = torch.tensor([-30.0] * value.shape[0])
+        critic_loss = ((value - target)*(value - target)).mean()#self.values_lost(value, target).mean()
+        critic_loss.backward()
+        self.values_optim.step()
+
 
     @overrides
     def _update_policy_nn(self, new_state: torch.Tensor, reward_advantage):
-        std = torch.max(torch.abs(reward_advantage))
-        reward_advantage = reward_advantage / (std + 1e-8)
+        #std = torch.max(torch.abs(reward_advantage))
+        #reward_advantage = reward_advantage / (std + 1e-8)
 
         #check1 = self.get_checkpoint()
 
         self.policy.zero_grad()
-        self.policy_optim.zero_grad()
         actions_probabilities = self.policy(self.state)
         log_actions = torch.log(actions_probabilities + 1e-6)
-        entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done
+        entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done.detach()
+        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.001 * entropy)).mean()
 
-        loss: torch.Tensor = (-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.001 * entropy).mean()
-
-        loss.backward(retain_graph=True)
+        loss.backward()
         self.policy_optim.step()
 
         show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
