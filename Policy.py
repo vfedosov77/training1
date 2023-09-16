@@ -91,6 +91,7 @@ class FastforwardPolicy(PolicyBase):
         for id, size in enumerate(layers_sizes):
             layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size)
             input_size = size
+            layers["RLU_" + str(id)] = torch.nn.ReLU()
 
         if add_softmax:
             layers["Softmax"] = torch.nn.Softmax(dim=-1)

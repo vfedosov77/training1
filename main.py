@@ -25,7 +25,7 @@ class PreprocessEnv(ParallelWrapper):
 
     def reset(self):
         state = self.venv.reset()
-        for i in state.shape[0]:
+        for i in range(state.shape[0]):
             state[i][0] = 0.0
             state[i][1] = 0.0
 
@@ -38,7 +38,7 @@ class PreprocessEnv(ParallelWrapper):
     def step_wait(self):
         next_state, reward, done, info = self.venv.step_wait()
 
-        for i in next_state.shape[0]:
+        for i in range(next_state.shape[0]):
             next_state[i][0] = 0.0
             next_state[i][1] = 0.0
 
@@ -86,17 +86,23 @@ def train_step(policy: PolicyBase):
         rewards_sum = torch.zeros([num_envs, 1])
         policy.clean(num_envs)
         steps = 0
+        last_states = torch.tensor([-100.0, 0.0, 0.0, 0.0] * num_envs).resize(num_envs, 4)
 
         while not policy.is_done():
             steps += 1
             actions = policy.sample_actions(states)
             next_states, rewards, done, _ = parallel_env.step(actions)
+            rewards = rewards * ~done.detach()
             rewards_sum += rewards.detach()
 
             policy.set_step_reward(next_states, rewards, done)
             states = next_states
 
-        policy.set_fault_step(states)
+            for i in range(num_envs):
+                if done[i].item() > 0.0 and last_states[i][0].item() < -99.0:
+                    last_states[i] = next_states[i].detach()
+
+        policy.set_fault_step(last_states)
 
         error = policy.get_and_reset_error()
         print("Err: " + str(error/steps))
@@ -115,7 +121,7 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
 
     env_fns = [lambda: create_env('CartPole-v1') for _ in range(num_envs)]
-    parallel_env = PreprocessEnv1Item(create_env('CartPole-v1'))
+    parallel_env = PreprocessEnv(ParallelEnv(env_fns)) #PreprocessEnv1Item(create_env('CartPole-v1'))
 
     dims = 4#parallel_env.observation_space.shape[0]
     actions = 2#parallel_env.action_space.n
