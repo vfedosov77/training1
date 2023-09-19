@@ -17,7 +17,7 @@ class Predictor:
 
     def train(self, prev_state: torch.Tensor, actions: torch.Tensor, done: torch.Tensor, cur_state: torch.Tensor):
         state_and_actions = torch.cat((prev_state, actions), dim=1)
-        state_and_done = torch.cat((prev_state, done), dim=1).detach()
+        state_and_done = torch.cat((cur_state, done), dim=1).detach()
         predicted = self.network(state_and_actions)
         diff = (predicted - state_and_done)
         squared_diff = (diff * diff)
