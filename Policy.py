@@ -140,7 +140,7 @@ class FastforwardPolicy(PolicyBase):
         actions_probabilities = self.policy(self.state)
         log_actions = torch.log(actions_probabilities + 1e-6)
         entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done.detach()
-        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.001 * entropy)).mean()
+        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.1 * entropy)).mean()
 
         loss.backward()
         self.policy_optim.step()

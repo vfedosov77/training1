@@ -25,10 +25,6 @@ class PreprocessEnv(ParallelWrapper):
 
     def reset(self):
         state = self.venv.reset()
-        for i in range(state.shape[0]):
-            state[i][0] = 0.0
-            state[i][1] = 0.0
-
         return torch.from_numpy(state).float()
 
     def step_async(self, actions):
@@ -37,11 +33,6 @@ class PreprocessEnv(ParallelWrapper):
 
     def step_wait(self):
         next_state, reward, done, info = self.venv.step_wait()
-
-        for i in range(next_state.shape[0]):
-            next_state[i][0] = 0.0
-            next_state[i][1] = 0.0
-
         next_state = torch.from_numpy(next_state).float()
         reward = torch.tensor(reward).unsqueeze(1).float()
         done = torch.tensor(done).unsqueeze(1)
@@ -53,8 +44,6 @@ class PreprocessEnv1Item:
 
     def reset(self):
         state = self.env.reset()
-        state[0] = 0.0
-        state[1] = 0.0
         state = torch.Tensor([state])
         return state
 
@@ -62,8 +51,6 @@ class PreprocessEnv1Item:
         action = int(actions[0].item())
         next_state, reward, done, info = self.env.step(action)
         next_state = np.array(next_state)
-        next_state[0] = 0.0
-        next_state[1] = 0.0
         next_state = torch.Tensor([next_state])
         reward_tensor = torch.Tensor([[reward]])
         done_tensor = torch.zeros([1, 1], dtype=torch.bool)
