@@ -13,42 +13,29 @@ class PolicyBase(metaclass=ABCMeta):
         self.state: torch.Tensor = None
         self.actions: List[int] = None
         self.gamma = 0.999
-        self.done: torch.Tensor = None
         self.threads_count = -1
         self.step_coeff = 1.0
         self.step = 0
 
     def clean(self, threads_count: int):
-        if self.done is not None:
-            del self.done
-
-        self.done = torch.zeros([threads_count, 1], dtype=torch.bool)
         self.threads_count = threads_count
         self.step_coeff = 1.0
         self.step = 0
-
-    def is_done(self):
-        return self.done.all()
 
     def sample_actions(self, state: torch.Tensor) -> List[int]:
         self.state = state
         self.actions = self._sample_actions_impl(state)
         return self.actions
 
-    def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor):
-        reward_advantage = self._update_values(new_state, reward, done)
+    def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor):
+        reward_advantage = self._update_values(new_state, reward, done, well_done)
         self._update_policy_nn(new_state, reward_advantage)
 
-        self.done |= done
         #self.step_coeff *= self.gamma
         self.step += 1
 
     @abstractmethod
-    def set_fault_step(self, states):
-        pass
-
-    @abstractmethod
-    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
+    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -78,13 +65,6 @@ class FastforwardPolicy(PolicyBase):
         self.values_lost = torch.nn.MSELoss()
         PolicyBase.__init__(self, name)
 
-        self.error = 0.0
-
-    def get_and_reset_error(self):
-        error = self.error
-        self.error = 0.0
-        return error
-
 
     def _create_nn_and_optimizer(self, input_size: int, layers_sizes: List, add_softmax: bool, lr: float) -> \
             Tuple[torch.nn.Sequential, torch.optim.Optimizer]:
@@ -105,28 +85,20 @@ class FastforwardPolicy(PolicyBase):
         return nn, optimizer
 
     @overrides
-    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor) -> torch.Tensor:
+    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
         value = self.values(self.state)
-        target = self.values(new_state).detach() * self.gamma + reward #- detached_done * 100.0
-        advantage = target - value
-        critic_loss = ((value - target)*(value - target)).mean()#self.values_lost(value, target)
+        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done) + (done * -30.0)
+
+        advantage = (target - value) * ~well_done.detach()
+        critic_loss = (advantage * advantage) .mean()
+
         critic_loss.backward()
         self.values_optim.step()
-        self.error += critic_loss.item()
 
-        show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-2.0, 2.0))
+        #show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-2.0, 2.0))
 
-        return advantage.detach() * ~self.done.detach();
-
-    @overrides
-    def set_fault_step(self, states) -> torch.Tensor:
-        self.values.zero_grad()
-        value = self.values(states)
-        target = torch.tensor([-30.0] * value.shape[0])
-        critic_loss = ((value - target)*(value - target)).mean()#self.values_lost(value, target).mean()
-        critic_loss.backward()
-        self.values_optim.step()
+        return advantage.detach()
 
 
     @overrides
@@ -139,13 +111,13 @@ class FastforwardPolicy(PolicyBase):
         self.policy.zero_grad()
         actions_probabilities = self.policy(self.state)
         log_actions = torch.log(actions_probabilities + 1e-6)
-        entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True) * ~self.done.detach()
+        entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True)
         loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.1 * entropy)).mean()
 
         loss.backward()
         self.policy_optim.step()
 
-        show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
+        #show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
 
         #if self.get_checkpoint() < check1 - 0.04:
         #    print("Error!!!!!!!!")

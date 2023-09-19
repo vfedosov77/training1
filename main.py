@@ -67,37 +67,26 @@ backup = None
 
 def train_step(policy: PolicyBase):
     global backup
+    policy.clean(num_envs)
+    states = parallel_env.reset()
 
-    for id in tqdm(range(60)):
-        states = parallel_env.reset()
-        rewards_sum = torch.zeros([num_envs, 1])
-        policy.clean(num_envs)
-        steps = 0
+    steps_done = torch.full([num_envs, 1], 0)
+    max_steps = 0
 
-        while not policy.is_done():
-            steps += 1
-            actions = policy.sample_actions(states)
-            next_states, rewards, done, _ = parallel_env.step(actions)
-            rewards = rewards * ~done.detach()
-            rewards_sum += rewards.detach()
+    for id in tqdm(range(2700)):
+        actions = policy.sample_actions(states)
+        next_states, rewards, done, _ = parallel_env.step(actions)
 
-            policy.set_step_reward(next_states, rewards, done)
-            states = next_states
+        steps_done = (steps_done + 1) * ~done
+        max_steps = max(max_steps, torch.max(steps_done).item())
 
-        #next_states = torch.tensor([0.0, 0.0, 0.0, 1.0]*50).resize(50, 4)
-        policy.set_fault_step(next_states)
+        if id % 50 == 0:
+            print(f"max steps: {max_steps}")
+            max_steps = 0
 
-        error = policy.get_and_reset_error()
-        print("Err: " + str(error/steps))
-
-        # zero = numpy.array([1.0, 0.1, 0.0, 0.0])
-        # zero = torch.from_numpy(zero).float()
-        average_reward = (rewards_sum).mean().item()
-        print(average_reward)
-
-        if id == 1:
-            backup = policy.clone()
-            print("!!!!!!!!!!!!!Backup!!!!!!!!!!!!")
+        well_done = steps_done > 490
+        policy.set_step_reward(next_states, rewards, done, well_done)
+        states = next_states
 
 
 if __name__ == '__main__':
@@ -116,33 +105,6 @@ if __name__ == '__main__':
     ev1 = create_env('CartPole-v1')
     state = ev1.reset()
     done = False
-
-    image1 = numpy.full((100, 100), 1.0)
-    image2 = numpy.full((100, 100), 1.0)
-
-    for i in range(100):
-        for j in range(100):
-            state = numpy.zeros([4])
-            state[2] = (i - 50.0) * 0.1
-            state[3] = (j - 50.0) * 0.03
-            state = torch.from_numpy(state).float()
-            actions1 = policy.policy(state)
-            actions2 = backup.policy(state)
-
-            if actions1[0] > 0.5:
-                image1[i][j] = 0.0
-
-            if actions2[0] > 0.5:
-                image2[i][j] = 0.0
-
-        image1[i][99] = 0.7
-        image1[i][97] = 0.7
-        image1[i][98] = 0.7
-
-    cv2.imshow("1", image1)
-    cv2.imshow("2", image2)
-    cv2.waitKey()
-
 
     while not done:
         img = ev1.render(mode='rgb_array')
