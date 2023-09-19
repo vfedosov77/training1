@@ -54,7 +54,7 @@ def show_policy_2d(policy, action_id, range_x = (-1.0, 1.0), range_y = (-1.0, 1.
     colors_bar1.update_normal(pcolor1)
     plt.autoscale()
     plt.draw()
-    plt.pause(0.01)
+    plt.pause(0.005)
     plt.ioff()
 
 
@@ -78,5 +78,5 @@ def show_values_2d(values, range_x = (-1.0, 1.0), range_y = (-1.0, 1.0), steps_c
     pcolor2.set_clim(colors_matrix.min(), colors_matrix.max())
     colors_bar2.update_normal(pcolor2)
     plt.draw()
-    plt.pause(0.01)
+    plt.pause(0.005)
     plt.ioff()

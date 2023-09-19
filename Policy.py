@@ -61,7 +61,7 @@ class FastforwardPolicy(PolicyBase):
         self.layers_sizes = layers_sizes.copy()
         self.policy, self.policy_optim = self._create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
         layers_sizes[-1] = 1
-        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.0004)
+        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
         self.values_lost = torch.nn.MSELoss()
         PolicyBase.__init__(self, name)
 
@@ -88,7 +88,7 @@ class FastforwardPolicy(PolicyBase):
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
         value = self.values(self.state)
-        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done) + (done * -30.0)
+        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done) + (done * 0.0)
 
         advantage = (target - value) * ~well_done.detach()
         critic_loss = (advantage * advantage) .mean()
@@ -96,7 +96,8 @@ class FastforwardPolicy(PolicyBase):
         critic_loss.backward()
         self.values_optim.step()
 
-        #show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-2.0, 2.0))
+        if self.step % 20 == 0:
+            show_values_2d(lambda x, y: self.values(torch.tensor((0.0, 0.0, x, y))), (-1.0, 1.0), (-2.0, 2.0))
 
         return advantage.detach()
 
@@ -112,12 +113,13 @@ class FastforwardPolicy(PolicyBase):
         actions_probabilities = self.policy(self.state)
         log_actions = torch.log(actions_probabilities + 1e-6)
         entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True)
-        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.1 * entropy)).mean()
+        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.01 * entropy)).mean()
 
         loss.backward()
         self.policy_optim.step()
 
-        #show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
+        if self.step % 20 == 0:
+            show_policy_2d(lambda x, y: self.policy(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
 
         #if self.get_checkpoint() < check1 - 0.04:
         #    print("Error!!!!!!!!")

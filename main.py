@@ -73,7 +73,7 @@ def train_step(policy: PolicyBase):
     steps_done = torch.full([num_envs, 1], 0)
     max_steps = 0
 
-    for id in tqdm(range(2700)):
+    for id in tqdm(range(10000)):
         actions = policy.sample_actions(states)
         next_states, rewards, done, _ = parallel_env.step(actions)
 
@@ -84,7 +84,7 @@ def train_step(policy: PolicyBase):
             print(f"max steps: {max_steps}")
             max_steps = 0
 
-        well_done = steps_done > 490
+        well_done = steps_done > 498
         policy.set_step_reward(next_states, rewards, done, well_done)
         states = next_states
 
