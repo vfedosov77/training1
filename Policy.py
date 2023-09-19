@@ -5,7 +5,7 @@ from abc import abstractmethod, ABCMeta
 from typing import *
 from diagrams import *
 from overrides import overrides
-
+from common.utils import create_nn_and_optimizer
 
 class PolicyBase(metaclass=ABCMeta):
     def __init__(self, name: str):
@@ -59,30 +59,11 @@ class FastforwardPolicy(PolicyBase):
     def __init__(self, name: str, input_size: int, layers_sizes: List[int]):
         self.input_size = input_size
         self.layers_sizes = layers_sizes.copy()
-        self.policy, self.policy_optim = self._create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
+        self.policy, self.policy_optim = create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
         layers_sizes[-1] = 1
-        self.values, self.values_optim = self._create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
+        self.values, self.values_optim = create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
         self.values_lost = torch.nn.MSELoss()
         PolicyBase.__init__(self, name)
-
-
-    def _create_nn_and_optimizer(self, input_size: int, layers_sizes: List, add_softmax: bool, lr: float) -> \
-            Tuple[torch.nn.Sequential, torch.optim.Optimizer]:
-        layers = OrderedDict()
-
-        for id, size in enumerate(layers_sizes):
-            layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size)
-            input_size = size
-
-            if id != len(layers_sizes) - 1:
-                layers["RLU_" + str(id)] = torch.nn.ReLU()
-
-        if add_softmax:
-            layers["Softmax"] = torch.nn.Softmax(dim=-1)
-
-        nn = torch.nn.Sequential(layers)
-        optimizer = torch.optim.Adam(nn.parameters(), lr=lr)#Eve(nn.parameters(), lr=lr)
-        return nn, optimizer
 
     @overrides
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:

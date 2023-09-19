@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torch import nn as nn
 from torch.optim import AdamW
+
+from Predictor import Predictor
 from utils import seed_everything
 from parallel_env import *
 import cv2
@@ -65,7 +67,7 @@ def create_env(env_name):
 
 backup = None
 
-def train_step(policy: PolicyBase):
+def train_step(policy: PolicyBase, predictor: Predictor):
     global backup
     policy.clean(num_envs)
     states = parallel_env.reset()
@@ -73,7 +75,7 @@ def train_step(policy: PolicyBase):
     steps_done = torch.full([num_envs, 1], 0)
     max_steps = 0
 
-    for id in tqdm(range(10000)):
+    for id in tqdm(range(2000)):
         actions = policy.sample_actions(states)
         next_states, rewards, done, _ = parallel_env.step(actions)
 
@@ -86,6 +88,8 @@ def train_step(policy: PolicyBase):
 
         well_done = steps_done > 498
         policy.set_step_reward(next_states, rewards, done, well_done)
+        predictor.train(states, actions, done, next_states)
+
         states = next_states
 
 
@@ -100,7 +104,9 @@ if __name__ == '__main__':
 
     print(f"State dimensions: {dims}. Actions: {actions}")
     policy = FastforwardPolicy("policy", dims, [64, 128, 64, actions])
-    train_step(policy)
+    predictor = Predictor(1, [64, 128, 64, dims])
+
+    train_step(policy, predictor)
 
     ev1 = create_env('CartPole-v1')
     state = ev1.reset()
