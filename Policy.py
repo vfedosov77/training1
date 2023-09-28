@@ -11,7 +11,7 @@ class PolicyBase(metaclass=ABCMeta):
     def __init__(self, name: str):
         self.name = name
         self.state: torch.Tensor = None
-        self.actions: List[int] = None
+        self.actions: torch.Tensor = None
         self.gamma = 0.999
         self.threads_count = -1
         self.step_coeff = 1.0
@@ -43,7 +43,7 @@ class PolicyBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _sample_actions_impl(self, state) -> Tuple[List[int], torch.Tensor]:
+    def _sample_actions_impl(self, state) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -69,7 +69,7 @@ class FastforwardPolicy(PolicyBase):
     def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
         value = self.values(self.state)
-        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done) + (done * 0.0)
+        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done)
 
         advantage = (target - value) * ~well_done.detach()
         critic_loss = (advantage * advantage) .mean()
@@ -107,7 +107,7 @@ class FastforwardPolicy(PolicyBase):
 
 
     @overrides
-    def _sample_actions_impl(self, state) -> Tuple[List[int], torch.Tensor]:
+    def _sample_actions_impl(self, state) -> torch.Tensor:
         actions = self.policy(state)
         return actions.multinomial(1).detach()
 

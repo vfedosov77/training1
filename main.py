@@ -75,8 +75,23 @@ def train_step(policy: PolicyBase, predictor: Predictor):
     steps_done = torch.full([num_envs, 1], 0)
     max_steps = 0
 
-    for id in tqdm(range(2000)):
+    for id in tqdm(range(300)):
         actions = policy.sample_actions(states)
+
+        if predictor.is_ready():
+            predicted, predicted_done = predictor.predict(states, actions)
+            predicted_done = (0.8 < predicted_done) * (predicted_done < 1.2)
+
+            if predicted_done.any():
+                for i in range(num_envs):
+                    if predicted_done[i].item() == True:
+                        actions[i] = ~actions[i]
+
+                        _, new_prediction_done = predictor.predict(states, actions)
+                        done_item = new_prediction_done[i].item()
+                        if done_item > 0.8 and done_item < 1.2:
+                            actions[i] = ~actions[i]
+
         next_states, rewards, done, _ = parallel_env.step(actions)
 
         steps_done = (steps_done + 1) * ~done
@@ -88,8 +103,7 @@ def train_step(policy: PolicyBase, predictor: Predictor):
 
         well_done = steps_done > 498
         policy.set_step_reward(next_states, rewards, done, well_done)
-        predictor.train(states, actions, done, next_states)
-
+        predictor.add_experience(states, next_states, actions, done)
         states = next_states
 
 
@@ -102,7 +116,7 @@ if __name__ == '__main__':
     dims = 4#parallel_env.observation_space.shape[0]
     actions = 2#parallel_env.action_space.n
 
-    print(f"State dimensions: {dims}. Actions: {actions}")
+    #print(f"State dimensions: {dims}. Actions: {actions}")
     policy = FastforwardPolicy("policy", dims, [64, 128, 64, actions])
     predictor = Predictor(1, [64, 128, 64, dims])
 
