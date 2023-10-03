@@ -10,8 +10,6 @@ from common.utils import create_nn_and_optimizer
 class PolicyBase(metaclass=ABCMeta):
     def __init__(self, name: str):
         self.name = name
-        self.state: torch.Tensor = None
-        self.actions: torch.Tensor = None
         self.gamma = 0.999
         self.threads_count = -1
         self.step_coeff = 1.0
@@ -23,9 +21,7 @@ class PolicyBase(metaclass=ABCMeta):
         self.step = 0
 
     def sample_actions(self, state: torch.Tensor) -> List[int]:
-        self.state = state
-        self.actions = self._sample_actions_impl(state)
-        return self.actions
+        return self._sample_actions_impl(state)
 
     def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor):
         reward_advantage = self._update_values(new_state, reward, done, well_done)
@@ -35,11 +31,20 @@ class PolicyBase(metaclass=ABCMeta):
         self.step += 1
 
     @abstractmethod
-    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
+    def _update_values(self,
+                       prev_state: torch.Tensor,
+                       new_state: torch.Tensor,
+                       reward: torch.Tensor,
+                       done: torch.Tensor,
+                       well_done: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def _update_policy_nn(self, new_state: torch.Tensor, reward_advantage: torch.Tensor):
+    def _update_policy_nn(self,
+                          prev_state: torch.Tensor,
+                          new_state: torch.Tensor,
+                          actions: torch.Tensor,
+                          reward_advantage: torch.Tensor):
         pass
 
     @abstractmethod
@@ -66,9 +71,14 @@ class FastforwardPolicy(PolicyBase):
         PolicyBase.__init__(self, name)
 
     @overrides
-    def _update_values(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor) -> torch.Tensor:
+    def _update_values(self,
+                       prev_state: torch.Tensor,
+                       new_state: torch.Tensor,
+                       reward: torch.Tensor,
+                       done: torch.Tensor,
+                       well_done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
-        value = self.values(self.state)
+        value = self.values(prev_state)
         target = ((self.values(new_state).detach() * self.gamma + reward) * ~done)
 
         advantage = (target - value) * ~well_done.detach()
@@ -84,17 +94,21 @@ class FastforwardPolicy(PolicyBase):
 
 
     @overrides
-    def _update_policy_nn(self, new_state: torch.Tensor, reward_advantage):
+    def _update_policy_nn(self,
+                          prev_state: torch.Tensor,
+                          new_state: torch.Tensor,
+                          actions: torch.Tensor,
+                          reward_advantage: torch.Tensor):
         #std = torch.max(torch.abs(reward_advantage))
         #reward_advantage = reward_advantage / (std + 1e-8)
 
         #check1 = self.get_checkpoint()
 
         self.policy.zero_grad()
-        actions_probabilities = self.policy(self.state)
+        actions_probabilities = self.policy(prev_state)
         log_actions = torch.log(actions_probabilities + 1e-6)
         entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True)
-        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, self.actions) * self.step_coeff) - 0.01 * entropy)).mean()
+        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, actions) * self.step_coeff) - 0.01 * entropy)).mean()
 
         loss.backward()
         self.policy_optim.step()

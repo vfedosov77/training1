@@ -10,7 +10,9 @@ from tqdm import tqdm
 from torch import nn as nn
 from torch.optim import AdamW
 
+from PolicyTrainer import PolicyTrainer
 from Predictor import Predictor
+from PredictorAdapter import PredictorAdapter
 from utils import seed_everything
 from parallel_env import *
 import cv2
@@ -67,44 +69,49 @@ def create_env(env_name):
 
 backup = None
 
+
+def train(trainer: PolicyTrainer, steps_count, callback):
+    steps_counts = []
+
+    for id in range(steps_count):
+        prev_state, next_state, actions, done = trainer.step()
+        steps_counts.append(trainer.get_steps_done().mean().item())
+
+        if callback is not None:
+            callback(prev_state, next_state, actions, done)
+
+    return sum(steps_counts) / len(steps_counts)
+
+
 def train_step(policy: PolicyBase, predictor: Predictor):
     global backup
     policy.clean(num_envs)
-    states = parallel_env.reset()
 
-    steps_done = torch.full([num_envs, 1], 0)
-    max_steps = 0
+    trainer = PolicyTrainer(policy)
 
-    for id in tqdm(range(300)):
-        actions = policy.sample_actions(states)
+    default_state = parallel_env.reset()
+    trainer.push_environment(parallel_env, default_state)
+
+    def on_step_by_env(prev_state, next_state, actions, done):
+        predictor.add_experience(prev_state, next_state, actions, done)
+
+    steps = 0
+
+    while True:
+        steps += 1
+
+        result = train(trainer, 100, on_step_by_env)
+        print(f"Env results: {predictor_result}")
+
+        if result > 100:
+            print(f"Trained in steps {steps}")
+            break
 
         if predictor.is_ready():
-            predicted, predicted_done = predictor.predict(states, actions)
-            predicted_done = (0.8 < predicted_done) * (predicted_done < 1.2)
+            trainer.push_environment(PredictorAdapter(predictor, default_state))
+            predictor_result = train(trainer, 100, None)
 
-            if predicted_done.any():
-                for i in range(num_envs):
-                    if predicted_done[i].item() == True:
-                        actions[i] = ~actions[i]
-
-                        _, new_prediction_done = predictor.predict(states, actions)
-                        done_item = new_prediction_done[i].item()
-                        if done_item > 0.8 and done_item < 1.2:
-                            actions[i] = ~actions[i]
-
-        next_states, rewards, done, _ = parallel_env.step(actions)
-
-        steps_done = (steps_done + 1) * ~done
-        max_steps = max(max_steps, torch.max(steps_done).item())
-
-        if id % 50 == 0:
-            print(f"max steps: {max_steps}")
-            max_steps = 0
-
-        well_done = steps_done > 498
-        policy.set_step_reward(next_states, rewards, done, well_done)
-        predictor.add_experience(states, next_states, actions, done)
-        states = next_states
+            print(f"Predictor results: {predictor_result}")
 
 
 if __name__ == '__main__':

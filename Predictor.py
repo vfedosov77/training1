@@ -43,9 +43,6 @@ class Predictor:
             for input_batch, results_batch in self.experience.get_batches(self.batch_size):
                 self._train(input_batch, results_batch)
 
-
-
-
     def predict(self, cur_state: torch.Tensor, actions) -> (torch.Tensor, torch.Tensor):
         state_and_actions = torch.cat((cur_state, actions), dim=1)
         predicted: torch.Tensor = self.network(state_and_actions)
