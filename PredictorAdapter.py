@@ -11,15 +11,16 @@ class PredictorAdapter:
         self.step_reward = torch.full([self.defaultState.shape[0], 1], step_reward)
 
     def reset(self):
-        state = self.defaultState
-        return state
+        self.state = self.defaultState
+        return self.state
 
     def set_state(self, state: torch.Tensor):
         self.state = state
 
     def step(self, actions):
-        state, done = self.predictor.predict(self.state, actions)
-        self.state = (state * ~done) + (self.defaultState * done)
+        state, done = self.predictor(self.predictor.unite_state_and_actions(self.state, actions))
+        done = done > 0.5
+        self.state = state #(state * ~done) + (self.defaultState * done)
         reward = self.step_reward * ~done
 
         return self.state, reward, done, None

@@ -100,7 +100,7 @@ def train_step(policy: PolicyBase, predictor: Predictor):
     while True:
         steps += 1
 
-        result = train(trainer, 100, on_step_by_env)
+        result = train(trainer, 50, on_step_by_env)
         print(f"Env results: {result}")
 
         if result > 100:
@@ -108,9 +108,19 @@ def train_step(policy: PolicyBase, predictor: Predictor):
             break
 
         if predictor.is_ready():
-            trainer.push_environment(PredictorAdapter(predictor, default_state))
-            predictor_result = train(trainer, 100, None)
+            print("Cur state: ", trainer.state)
+            adapter = PredictorAdapter(predictor, default_state)
+            adapter.set_state(trainer.state)
+            sample_actions = policy.sample_actions(default_state)
+            states, rew, done, _ = parallel_env.step(sample_actions)
+            states2, rew2, done2, _ = adapter.step(sample_actions)
+            print("Env: ", states, rew, done)
+            print("Pred: ", states2, rew2, done2)
+            print("Predictor stepped")
 
+            trainer.push_environment(adapter)
+            predictor_result = train(trainer, 10000, None)
+            trainer.pop_environment()
             print(f"Predictor results: {predictor_result}")
 
 
@@ -125,7 +135,7 @@ if __name__ == '__main__':
 
     #print(f"State dimensions: {dims}. Actions: {actions}")
     policy = FastforwardPolicy("policy", dims, [64, 128, 64, actions])
-    predictor = Predictor(1, [64, 128, 64, dims])
+    predictor = Predictor(1, [128, 128, 64, dims])
 
     train_step(policy, predictor)
 

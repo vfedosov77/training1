@@ -38,7 +38,7 @@ class PolicyTrainer:
         #    print(f"max steps: {max_steps}")
         #    max_steps = 0
 
-        well_done = self.steps_done > 498
+        well_done = self.steps_done > 498.0
         self.policy.set_step_reward(self.state, next_state, actions, rewards, done, well_done)
 
         prev_state = self.state
