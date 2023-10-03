@@ -18,10 +18,7 @@ class PredictorAdapter:
         self.state = state
 
     def step(self, actions):
-        result = self.predictor.predict(self.state, actions)
-        state = result[:,:-1]
-        done = result[:,-1] > 0.5
-
+        state, done = self.predictor.predict(self.state, actions)
         self.state = (state * ~done) + (self.defaultState * done)
         reward = self.step_reward * ~done
 

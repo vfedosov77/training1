@@ -17,7 +17,7 @@ class PolicyTrainer:
 
         if self.state is None:
             self.state = new_environment.reset() if state is None else state
-            self.steps_done = torch.full([self.state.shape[0], 1], 0)
+            self.steps_done = torch.full([self.state.shape[0], 1], 0.0)
         else:
             # Real environment does not need that
             new_environment.set_state(self.state)
@@ -31,7 +31,7 @@ class PolicyTrainer:
         actions = self.policy.sample_actions(self.state)
         next_state, rewards, done, _ = self.environment.step(actions)
 
-        self.steps_done = (self.steps_done + 1) * ~done
+        self.steps_done = (self.steps_done + 1.0) * ~done
         #max_steps = max(max_steps, torch.max(steps_done).item())
 
         #if id % 50 == 0:
@@ -39,7 +39,7 @@ class PolicyTrainer:
         #    max_steps = 0
 
         well_done = self.steps_done > 498
-        self.policy.set_step_reward(self.state, next_state, rewards, done, well_done)
+        self.policy.set_step_reward(self.state, next_state, actions, rewards, done, well_done)
 
         prev_state = self.state
         self.state = next_state

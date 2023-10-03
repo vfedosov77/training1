@@ -101,7 +101,7 @@ def train_step(policy: PolicyBase, predictor: Predictor):
         steps += 1
 
         result = train(trainer, 100, on_step_by_env)
-        print(f"Env results: {predictor_result}")
+        print(f"Env results: {result}")
 
         if result > 100:
             print(f"Trained in steps {steps}")

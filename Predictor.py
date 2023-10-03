@@ -46,8 +46,7 @@ class Predictor:
     def predict(self, cur_state: torch.Tensor, actions) -> (torch.Tensor, torch.Tensor):
         state_and_actions = torch.cat((cur_state, actions), dim=1)
         predicted: torch.Tensor = self.network(state_and_actions)
-        return predicted[:,:self.state_size], predicted[:, self.state_size:]
-
+        return predicted[:,:self.state_size], predicted[:, self.state_size:] > 0.5
 
     def _test(self, actions, cur_states, done, prev_states):
         predicted_state, predicted_done = self.predict(prev_states, actions)
@@ -58,8 +57,8 @@ class Predictor:
         #print(f"Predictor: {state_diff}, {predicted_done == done}")
 
     def _train(self, input: torch.Tensor, result: torch.Tensor):
-        predicted = self.network(input)
-        loss = self.loss(predicted, result)
+        predicted = self.network(input.detach())
+        loss = self.loss(predicted, result.detach())
 
         self.network.zero_grad()
         loss.backward()
@@ -69,6 +68,4 @@ class Predictor:
         #    print (f"Predictor loss: {loss.item()}")
 
         self.step += 1
-
-
 

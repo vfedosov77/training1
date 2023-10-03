@@ -23,9 +23,15 @@ class PolicyBase(metaclass=ABCMeta):
     def sample_actions(self, state: torch.Tensor) -> List[int]:
         return self._sample_actions_impl(state)
 
-    def set_step_reward(self, new_state: torch.Tensor, reward: torch.Tensor, done: torch.Tensor, well_done: torch.Tensor):
-        reward_advantage = self._update_values(new_state, reward, done, well_done)
-        self._update_policy_nn(new_state, reward_advantage)
+    def set_step_reward(self,
+                        prev_state: torch.Tensor,
+                        new_state: torch.Tensor,
+                        actions: torch.Tensor,
+                        reward: torch.Tensor,
+                        done: torch.Tensor,
+                        well_done: torch.Tensor):
+        reward_advantage = self._update_values(prev_state, new_state, reward, done, well_done)
+        self._update_policy_nn(prev_state, new_state, actions, reward_advantage)
 
         #self.step_coeff *= self.gamma
         self.step += 1
@@ -78,8 +84,8 @@ class FastforwardPolicy(PolicyBase):
                        done: torch.Tensor,
                        well_done: torch.Tensor) -> torch.Tensor:
         self.values.zero_grad()
-        value = self.values(prev_state)
-        target = ((self.values(new_state).detach() * self.gamma + reward) * ~done)
+        value = self.values(prev_state.detach())
+        target = ((self.values(new_state).detach() * self.gamma + reward.detach()) * ~done)
 
         advantage = (target - value) * ~well_done.detach()
         critic_loss = (advantage * advantage) .mean()
@@ -105,10 +111,10 @@ class FastforwardPolicy(PolicyBase):
         #check1 = self.get_checkpoint()
 
         self.policy.zero_grad()
-        actions_probabilities = self.policy(prev_state)
+        actions_probabilities = self.policy(prev_state.detach())
         log_actions = torch.log(actions_probabilities + 1e-6)
         entropy = -torch.sum(log_actions * actions_probabilities, dim=-1, keepdim=True)
-        loss: torch.Tensor = ((-(reward_advantage * log_actions.gather(1, actions) * self.step_coeff) - 0.01 * entropy)).mean()
+        loss: torch.Tensor = ((-(reward_advantage.detach() * log_actions.gather(1, actions) * self.step_coeff) - 0.01 * entropy)).mean()
 
         loss.backward()
         self.policy_optim.step()
