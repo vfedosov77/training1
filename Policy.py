@@ -88,8 +88,7 @@ class FastforwardPolicy(PolicyBase):
         target = ((self.values(new_state).detach() * self.gamma + reward.detach()) * ~done)
 
         advantage = (target - value) * ~well_done.detach()
-        critic_loss = (advantage * advantage) .mean()
-
+        critic_loss = self.values_lost(value, target)
         critic_loss.backward()
         self.values_optim.step()
 
