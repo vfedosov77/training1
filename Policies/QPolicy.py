@@ -12,12 +12,12 @@ from ExperienceDB import ExperienceDB
 
 class QPolicy(PolicyBase):
     def __init__(self, name: str, input_size: int, layers_sizes: List[int]):
-        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes, False, 0.0001)
+        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
         self.target_q_network = copy.deepcopy(self.qvalues).eval()
         self.values_lost = torch.nn.MSELoss()
         self.buffer = ExperienceDB()
         self.batch_size = 64
-        self.exploratiry_probability = 0.0
+        self.exploratiry_probability = 0.2
         PolicyBase.__init__(self, name)
 
     def _update_values(self,
@@ -34,7 +34,7 @@ class QPolicy(PolicyBase):
             next_values = self.target_q_network(new_state)
             next_value = torch.max(next_values, dim=-1, keepdim=True)[0].detach()
 
-            loss = self.values_lost(self.qvalues(prev_state)[actions], reward + next_value * ~done)
+            loss = self.values_lost(self.qvalues(state).gather(1, actions), reward + next_value * ~done)
             self.qvalues.zero_grad()
             loss.backward()
             self.qvalues_optim.step()
