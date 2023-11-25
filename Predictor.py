@@ -82,9 +82,8 @@ class Predictor(torch.nn.Module):
 
         #print(f"Predictor: {state_diff}, {predicted_done == done}")
 
-    def _train(self, input: torch.Tensor, result: torch.Tensor):
-        predicted = self.network(input.detach())
-        loss = self.loss(predicted, result.detach())
+    def _train_state(self, state_and_actions: torch.Tensor, state: torch.Tensor, done: torch.Tensor):
+        predicted_state: torch.Tensor = self.network(state_and_actions)
 
         self.network.zero_grad()
         step_loss = self.state_loss(predicted_state, state.detach())
