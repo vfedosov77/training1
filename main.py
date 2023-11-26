@@ -80,7 +80,7 @@ def train_step(policy: PolicyBase, predictor: Predictor):
     trainer.push_environment(parallel_env, default_state)
 
     def on_step_by_env(prev_state, next_state, actions, done):
-        pass#predictor.add_experience(prev_state, next_state, actions, done)
+        predictor.add_experience(prev_state, next_state, actions, done)
 
     steps = 0
 
