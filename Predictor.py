@@ -19,14 +19,16 @@ class Predictor(torch.nn.Module):
         probability_input_size = actions_count + layers_sizes[-1]
 
         self.variants_probability, self.variants_optimizer = \
-            create_nn_and_optimizer(probability_input_size, probability_layers, True, 0.001)
+            create_nn_and_optimizer(probability_input_size, probability_layers, False, 0.001)
+
+        self.variants_loss = torch.nn.CrossEntropyLoss()
 
         # Predictor NN
         self.state_size = layers_sizes[-1]
         input_size = actions_count + layers_sizes[-1] + 1
         self.network = create_nn(input_size, layers_sizes, False)
-        self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.0001)  # , betas=(0.5, 0.9))
-        self.worst_state_optimizer = torch.optim.Adam(self.network.parameters(), lr=1.0)
+        self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.00001)  # , betas=(0.5, 0.9))
+        #self.worst_state_optimizer = torch.optim.Adam(self.network.parameters(), lr=1.0)
         self.state_loss = torch.nn.MSELoss()
 
         # Done NN
@@ -139,7 +141,7 @@ class Predictor(torch.nn.Module):
         self.variants_probability.zero_grad()
         best_variants = best_variants.reshape((len(best_variants), 1))
         best_probabilities = torch.gather(probabilities_variants, 1, best_variants)
-        loss_best = (1.0 - best_probabilities).mean()
+        loss_best = -torch.log(best_probabilities).mean()
 
         loss_best.backward()
         self.variants_optimizer.step()
