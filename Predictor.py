@@ -127,7 +127,8 @@ class Predictor(torch.nn.Module):
         distances_worst_target = torch.norm(worst_predicted - state3D, dim=2)
         closer_to_worst = distances_worst_target <= distances
 
-        probabilities_variants = self.variants_probability(state_and_actions)
+        probabilities_before_softmax = self.variants_probability(state_and_actions)
+        probabilities_variants = torch.nn.functional.softmax(probabilities_before_softmax, dim=1)
         best_probabilities = torch.gather(probabilities_variants, 1, best_variants.reshape((len(best_variants), 1)))
 
         use_worst = ((best_probabilities > 0.99) * closer_to_worst).detach()
@@ -140,10 +141,10 @@ class Predictor(torch.nn.Module):
         # Variants probabilities
         self.variants_probability.zero_grad()
         best_variants = best_variants.reshape((len(best_variants), 1))
-        best_probabilities = torch.gather(probabilities_variants, 1, best_variants)
-        loss_best = -torch.log(best_probabilities).mean()
+        target = torch.cat(((1 - best_variants), best_variants), dim=1).float().detach()
 
-        loss_best.backward()
+        loss = self.variants_loss(probabilities_before_softmax, target)
+        loss.backward()
         self.variants_optimizer.step()
 
         # Done
