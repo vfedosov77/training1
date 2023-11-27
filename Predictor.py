@@ -82,7 +82,7 @@ class Predictor(torch.nn.Module):
     def _test(self, prev_states, cur_states, actions, done):
         state_and_actions = self.unite_state_and_actions(prev_states, actions)
         predicted_state, predicted_done = self(state_and_actions)
-        loss, _, _ = self._get_prediction_loss(predicted_state, cur_states)
+        loss = self._get_prediction_loss(predicted_state, cur_states)
 
         if not self.is_ready_flag and loss.item() <= self.accepted_state_diff:
             self.tests_passed += 1
@@ -94,48 +94,55 @@ class Predictor(torch.nn.Module):
 
         print(f"Predictor: {loss}")
 
+    def _get_variants(self, predicted_variants, variants):
+        variants = variants.reshape((len(variants), 1, 1))
+        variants = variants.expand(-1, -1, 4)
+        result = predicted_variants.gather(1, variants)
+        return result
+
     def _get_prediction_loss(self, predicted_variants, state):
-        diff = torch.abs(predicted_variants - state.unsqueeze(1)).mean(dim=-1)
+        state = state.unsqueeze(1).detach()
+        diff = torch.norm(predicted_variants - state, dim=2)
         best_variants = diff.argmin(axis=-1)
-        best_variants = best_variants.reshape((len(predicted_variants), 1, 1))
-        best_variants_ext = best_variants.expand(-1, -1, 4)
-        predicted = predicted_variants.gather(1, best_variants_ext)
-        step_loss = self.state_loss(predicted, state.detach())
-        return step_loss, best_variants.detach(), predicted.detach()
+        best_predicted = self._get_variants(predicted_variants, best_variants)
+        step_loss = self.state_loss(best_predicted, state)
+        return step_loss
 
     def _train_state(self, state_and_actions: torch.Tensor, state: torch.Tensor, done: torch.Tensor):
         input = self.crate_all_variants(state_and_actions)
         predicted_variants: torch.Tensor = self.network(input)
 
-        # Prediction
+        # Prediction with clusterization
         self.network.zero_grad()
-        step_loss, best_variants, predicted = self._get_prediction_loss(predicted_variants, state)
+        state3D = state.unsqueeze(1).detach()
+        diff = torch.norm(predicted_variants - state3D, dim=2)
+        best_variants = diff.argmin(axis=-1)
+
+        best_predicted = self._get_variants(predicted_variants, best_variants)
+        worst_predicted = self._get_variants(predicted_variants, 1 - best_variants)
+
+        distances = torch.norm(best_predicted - worst_predicted, dim=2)
+        distances_worst_target = torch.norm(worst_predicted - state3D, dim=2)
+        closer_to_worst = distances_worst_target <= distances
+
+        probabilities_variants = self.variants_probability(state_and_actions)
+        best_probabilities = torch.gather(probabilities_variants, 1, best_variants.reshape((len(best_variants), 1)))
+
+        use_worst = ((best_probabilities > 0.99) * closer_to_worst).detach()
+        trained_variant = best_predicted * (~use_worst) + worst_predicted * use_worst
+
+        step_loss = self.state_loss(trained_variant, state3D)
         step_loss.backward()
         self.state_optimizer.step()
 
         # Variants probabilities
         self.variants_probability.zero_grad()
-        probabilities_variants = self.variants_probability(state_and_actions)
         best_variants = best_variants.reshape((len(best_variants), 1))
         best_probabilities = torch.gather(probabilities_variants, 1, best_variants)
         loss_best = (1.0 - best_probabilities).mean()
 
         loss_best.backward()
         self.variants_optimizer.step()
-
-        # Unused variants
-        self.network.zero_grad()
-        worst_variants = 1 - best_variants
-        worst_probabilities_too_bad = torch.gather(probabilities_variants, 1, worst_variants) < 0.01
-
-        if worst_probabilities_too_bad.any():
-            predicted_variants: torch.Tensor = self.network(input)
-            worst_variants_ext = worst_variants.unsqueeze(-1).expand(-1, -1, 4)
-            predicted_worst = predicted_variants.gather(1, worst_variants_ext)
-
-            lost_worst = worst_probabilities_too_bad.detach() * (predicted - predicted_worst)
-            lost_worst.mean().backward()
-            self.worst_state_optimizer.step()
 
         # Done
         self._train_done(state, done)
