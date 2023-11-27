@@ -1,10 +1,10 @@
 import torch
 
-import Policy
+from Policies import A2CPolicy
 
 
 class PolicyTrainer:
-    def __init__(self, policy: Policy):
+    def __init__(self, policy: A2CPolicy):
         self.policy = policy
         self.state = None
         self.environment = None
