@@ -96,7 +96,7 @@ class Predictor(torch.nn.Module):
         self.state_optimizer.step()
 
         # Done
-        self._train_done(curent_state, done)
+        #self._train_done(curent_state, done)
 
         if self.step % 500 == 0:
             lr = self.scheduller.get_last_lr()
