@@ -21,7 +21,7 @@ class Predictor(torch.nn.Module):
 
         self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.001, betas=(0.5, 0.9))
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
-        self.scheduller = ExponentialLR(self.state_optimizer, gamma=0.99, verbose=False)
+        self.scheduller = ExponentialLR(self.state_optimizer, gamma=0.9, verbose=False)
 
         self.step = 0
         self.experience = ExperienceDB()
