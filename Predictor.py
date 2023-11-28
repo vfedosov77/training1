@@ -6,6 +6,7 @@ from typing import *
 from diagrams import *
 from common.utils import create_nn
 from ExperienceDB import ExperienceDB
+from torch.optim.lr_scheduler import StepLR
 
 
 class Predictor(torch.nn.Module):
@@ -18,21 +19,27 @@ class Predictor(torch.nn.Module):
         self.network = create_nn(input_size, layers_sizes, False)
         self.done_network = create_nn(layers_sizes[-1], [64, 10, 1], False)
 
-        self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.0001)#, betas=(0.5, 0.9))
+        self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.001, betas=(0.5, 0.9))
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
+        self.sceduller = StepLR(self.state_optimizer, 300, gamma=0.3, verbose=True)
 
         self.step = 0
         self.experience = ExperienceDB()
         self.tests_passed = 0
         self.accepted_state_diff = accepted_state_diff
-        self.batch_size = 64
+        self.batch_size = 256
         self.state_loss = torch.nn.MSELoss()
         self.done_loss = torch.nn.BCELoss()
 
         self.is_ready_flag = False
+        self.state_norm_coefficients = torch.from_numpy(np.array([1.0/2.4, 1.0, 1.0/0.209, 1.0])).float().detach()
+
 
     def is_ready(self):
         return self.is_ready_flag
+
+    def _normalize_state(self, state):
+        return state * self.state_norm_coefficients
 
     def add_experience(self,
                        prev_states: torch.Tensor,
@@ -41,19 +48,19 @@ class Predictor(torch.nn.Module):
                        done: torch.Tensor):
         done = done.float()
 
-        if not self.experience.is_empty():
-            self._test(prev_states, cur_states, actions, done)
+        #if not self.experience.is_empty():
+        #    self._test(prev_states, cur_states, actions, done)
+        norm_prev = self._normalize_state(prev_states)
+        norm_actions = actions * 2.0 - 1.0
+        state_and_actions = self.unite_state_and_actions(norm_prev, norm_actions)
+        cur_states_norm = self._normalize_state(cur_states)
+        self.experience.add(state_and_actions, cur_states_norm, done)
 
-        state_and_actions = self.unite_state_and_actions(prev_states, actions)
-
-        self.experience.add(state_and_actions, cur_states, done)
-
-        if not self.experience.is_empty():
-            for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
-                self._train_state(input_batch, state_batch, done_batch)
-
-                if self.is_ready_flag:
-                    self._train_done(input_batch, state_batch, done_batch)
+        if self.experience.size() >= self.batch_size * 50:
+            for i in range(1000):
+                self.sceduller.step()
+                for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
+                    self._train(input_batch, state_batch, done_batch)
 
     def unite_state_and_actions(self, prev_states, actions):
         return torch.cat((prev_states, actions), dim=1)
@@ -73,37 +80,34 @@ class Predictor(torch.nn.Module):
             if self.tests_passed > 10:
                 print("Predictor is ready")
                 self.is_ready_flag = True
-
-                for _ in range(10):
-                    for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
-                        self._train_done(input_batch, state_batch, done_batch)
         else:
             self.tests_passed = 0
 
         #print(f"Predictor: {state_diff}, {predicted_done == done}")
 
-    def _train(self, input: torch.Tensor, result: torch.Tensor):
+    def _train(self, input: torch.Tensor, curent_state: torch.Tensor, done: torch.Tensor):
+        # Prediction
         predicted = self.network(input.detach())
-        loss = self.loss(predicted, result.detach())
 
         self.network.zero_grad()
-        step_loss = self.state_loss(predicted_state, state.detach())
+        step_loss = self.state_loss(predicted, curent_state.detach())
         step_loss.backward()
         self.state_optimizer.step()
+
+        # Done
+        self._train_done(curent_state, done)
 
         if self.step % 500 == 0:
             print (f"Predictor loss by step: {step_loss}")
 
         self.step += 1
 
-    def _train_done(self, state_and_actions: torch.Tensor, state: torch.Tensor, done: torch.Tensor):
+    def _train_done(self, state: torch.Tensor, done: torch.Tensor):
         self.done_network.zero_grad()
-        predicted_done = torch.sigmoid(self.done_network(self.network(state_and_actions).detach()))
+        predicted_done = torch.sigmoid(self.done_network(state.detach()))
         done_loss = self.done_loss(predicted_done, done.detach())
         done_loss.backward()
         self.done_optimizer.step()
 
         if self.step % 500 == 0:
             print (f"Predictor loss by done: {done_loss.item()}")
-
-        self.step += 1
