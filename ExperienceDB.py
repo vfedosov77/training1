@@ -69,7 +69,7 @@ class ExperienceDB:
             self.dataset.tensors = (self.state, self.action, self.next_state, self.done, self.reward)
 
     def get_batches(self, size) -> "iterator":
-        # TODO: remove shuffle - it is not efficient
+        # TODO: consider to remove shuffle - it is not efficient
         return DataLoader(self.dataset, batch_size=size, shuffle=True)
 
     def is_empty(self):
