@@ -6,7 +6,7 @@ from typing import *
 from diagrams import *
 from common.utils import create_nn
 from ExperienceDB import ExperienceDB
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, ExponentialLR
 
 
 class Predictor(torch.nn.Module):
@@ -21,13 +21,13 @@ class Predictor(torch.nn.Module):
 
         self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=0.001, betas=(0.5, 0.9))
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
-        self.sceduller = StepLR(self.state_optimizer, 300, gamma=0.3, verbose=True)
+        self.scheduller = ExponentialLR(self.state_optimizer, gamma=0.99, verbose=False)
 
         self.step = 0
         self.experience = ExperienceDB()
         self.tests_passed = 0
         self.accepted_state_diff = accepted_state_diff
-        self.batch_size = 256
+        self.batch_size = 23
         self.state_loss = torch.nn.MSELoss()
         self.done_loss = torch.nn.BCELoss()
 
@@ -56,10 +56,11 @@ class Predictor(torch.nn.Module):
         cur_states_norm = self._normalize_state(cur_states)
         self.experience.add(state_and_actions, cur_states_norm, done)
 
-        if self.experience.size() >= self.batch_size * 50:
-            for i in range(1000):
-                self.sceduller.step()
+        if self.experience.size() >= self.batch_size * 500:
+            for i in range(10000):
+                self.scheduller.step()
                 for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
+                    self.experience.check_if_determinate(input_batch, state_batch)
                     self._train(input_batch, state_batch, done_batch)
 
     def unite_state_and_actions(self, prev_states, actions):
@@ -98,7 +99,8 @@ class Predictor(torch.nn.Module):
         self._train_done(curent_state, done)
 
         if self.step % 500 == 0:
-            print (f"Predictor loss by step: {step_loss}")
+            lr = self.scheduller.get_last_lr()
+            print (f"Predictor loss by step: {step_loss}, by rate {lr}")
 
         self.step += 1
 
