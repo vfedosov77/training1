@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     #print(f"State dimensions: {dims}. Actions: {actions}")
     policy = QPolicy("policy", dims, [64, 128, 64, actions])
-    predictor = Predictor(1, [128, 128, dims])
+    predictor = Predictor(1, [1024, 256, 64, dims])
 
     train_step(policy, predictor)
 
