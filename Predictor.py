@@ -29,7 +29,7 @@ class Predictor(torch.nn.Module):
         self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=lr, betas=betas)
         self.confidence_optimizer = torch.optim.Adam(self.confidence.parameters(), lr=lr, betas=betas)
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
-        self.scheduler = ExponentialLR(self.state_optimizer, gamma=0.95, verbose=False)
+        self.scheduler = ExponentialLR(self.state_optimizer, gamma=0.98, verbose=False)
 
         self.step = 0
         self.experience = ExperienceDB()
@@ -71,16 +71,25 @@ class Predictor(torch.nn.Module):
             self.extreme_experience.add(state_and_actions[indices], cur_states_norm[indices], done[indices])
 
         if self.experience.size() >= self.batch_size * 20:
-            iterations_count = 50 if not self.is_ready_flag else 1
+            iterations_count = 250 if not self.is_ready_flag else 1
 
             for i in range(iterations_count):
                 self.scheduler.step()
                 for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
                     self._train(input_batch, state_batch, done_batch)
 
-                for _ in range(10):
+                if i % 5 == 0:
                     for input_batch, state_batch, done_batch in self.extreme_experience.get_batches(self.batch_size):
                         self._train(input_batch, state_batch, done_batch)
+
+            if not self.is_ready_flag:
+                self._update_extreme()
+
+                for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
+                    self._train(input_batch, state_batch, done_batch)
+
+                for input_batch, state_batch, done_batch in self.extreme_experience.get_batches(self.batch_size):
+                    self._train(input_batch, state_batch, done_batch)
 
             self.is_ready_flag = True
 
@@ -94,19 +103,26 @@ class Predictor(torch.nn.Module):
         done = (done > 0.5) | ~confidence
         return predicted_state.detach(), done.detach()
 
-    def _test(self):
+    def _update_extreme(self):
         inputs, next_states, done = self.experience.get_all()
-        dim = input.shape[1]
+        predicted_state: torch.Tensor = self.network(inputs)
+        predicted_done = torch.sigmoid(self.done_network(predicted_state))
 
+        state_not_ok = torch.norm(predicted_state - next_states, dim=1) >= 0.1
+        done_not_ok = (predicted_done > 0.5) != done
 
-        #for i in range(len(inputs)):
-
+        not_ok = done_not_ok.reshape((len(done_not_ok))) | state_not_ok
+        done_ids = torch.nonzero(done_not_ok)
+        state_ids = torch.nonzero(state_not_ok)
+        ids = torch.nonzero(not_ok)
+        ids = ids.reshape((len(ids)))
+        self.extreme_experience.add(inputs[ids], next_states[ids], done[ids])
 
     def _train(self, input: torch.Tensor, curent_state: torch.Tensor, done: torch.Tensor):
-        confidence = self._get_confidence(input)
-
         # Prediction
         predicted = self.network(input.detach())
+
+        state_ok = torch.norm(predicted - curent_state, dim=1).detach() < 0.1
 
         self.network.zero_grad()
         step_loss = self.state_loss(predicted, curent_state.detach())
@@ -114,10 +130,10 @@ class Predictor(torch.nn.Module):
         self.state_optimizer.step()
 
         # Done
-        self._train_done(curent_state, done)
+        done_ok = self._train_done(curent_state, done)
 
         # Confidence
-        self._train_confidence(input)
+        self._train_confidence(input, state_ok.reshape((len(state_ok))), done_ok.reshape((len(done_ok))))
 
         if self.step % 500 == 0:
             lr = self.scheduler.get_last_lr()
@@ -125,13 +141,19 @@ class Predictor(torch.nn.Module):
 
         self.step += 1
 
-    def _train_confidence(self, input: torch.Tensor):
-        predicted = self.confidence(input.detach())
+    def _train_confidence(self, input: torch.Tensor, state_ok: torch.Tensor, done_ok: torch.Tensor):
+        ok = done_ok * state_ok
 
-        self.confidence.zero_grad()
-        step_loss = self.state_loss(predicted, self.confidence_pivot(input.detach()).detach())
-        step_loss.backward()
-        self.confidence_optimizer.step()
+        if torch.any(ok):
+            indices_ok = torch.nonzero(ok).detach()
+            indices_ok = indices_ok.reshape((len(indices_ok)))
+            input_filtered = input[indices_ok].detach()
+            predicted = self.confidence(input_filtered)
+
+            self.confidence.zero_grad()
+            step_loss = self.state_loss(predicted, self.confidence_pivot(input_filtered).detach())
+            step_loss.backward()
+            self.confidence_optimizer.step()
 
     def _get_confidence(self, input: torch.Tensor):
         predicted = self.confidence(input.detach())
@@ -148,3 +170,5 @@ class Predictor(torch.nn.Module):
 
         if self.step % 500 == 0:
             print (f"Predictor loss by done: {done_loss.item()}")
+
+        return (predicted_done > 0.5) == done
