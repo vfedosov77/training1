@@ -12,12 +12,16 @@ from ExperienceDB import ExperienceDB
 
 class QPolicy(PolicyBase):
     def __init__(self, name: str, input_size: int, layers_sizes: List[int]):
-        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
+        self.input_size = input_size
+        self.layers_sizes = list.copy(layers_sizes)
+        self.lr = 0.001
+        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes, False, self.lr)
         self.target_q_network = copy.deepcopy(self.qvalues).eval()
         self.values_lost = torch.nn.MSELoss()
         self.buffer = ExperienceDB()
         self.batch_size = 64
         self.exploratiry_probability = 0.2
+
         PolicyBase.__init__(self, name)
 
     def _update_values(self,
@@ -42,8 +46,9 @@ class QPolicy(PolicyBase):
             if self.step % 20 == 0:
                 self.target_q_network.load_state_dict(self.qvalues.state_dict())
 
-                show_policy_2d(lambda x, y: self.qvalues(torch.tensor((0.0, 0.0, x, y))), 0, (-1.0, 1.0), (-1.0, 1.0))
-                show_values_2d(lambda x, y: self.qvalues(torch.tensor((0.0, 0.0, x, y)))[1], (-1.0, 1.0), (-1.0, 1.0))
+                if self.cloned:
+                    show_values_2d_1(lambda x, y: self.qvalues(torch.tensor((0.0, 0.0, x, y)))[0], (-1.0, 1.0), (-1.0, 1.0))
+                    show_values_2d_2(lambda x, y: self.qvalues(torch.tensor((0.0, 0.0, x, y)))[1], (-1.0, 1.0), (-1.0, 1.0))
 
         return reward
 
@@ -64,4 +69,11 @@ class QPolicy(PolicyBase):
         return actions
 
     def clone(self):
-        pass
+        new_policy = QPolicy(self.name, self.input_size, self.layers_sizes)
+        new_policy.qvalues.load_state_dict(self.qvalues.state_dict())
+        new_policy.target_q_network.load_state_dict(self.qvalues.state_dict())
+        new_policy.cloned = True
+        return new_policy
+
+    def copy_state_from(self, policy: "QPolicy"):
+        self.qvalues.load_state_dict(policy.qvalues.state_dict())

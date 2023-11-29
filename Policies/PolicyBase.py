@@ -10,6 +10,10 @@ class PolicyBase(metaclass=ABCMeta):
         self.gamma = 0.999
         self.threads_count = -1
         self.step = 0
+        self.cloned = False
+
+    def is_cloned(self):
+        return self.cloned
 
     def clean(self, threads_count: int):
         self.threads_count = threads_count
@@ -53,4 +57,7 @@ class PolicyBase(metaclass=ABCMeta):
         pass
 
     def clone(self):
+        raise NotImplementedError()
+
+    def copy_state_from(self, policy: "PolicyBase"):
         raise NotImplementedError()

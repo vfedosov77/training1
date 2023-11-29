@@ -15,18 +15,19 @@ class ExperienceDB:
 
         self.input2output = dict()
 
-    def add(self, input, next_state, done):
-        # for i in range(len(input)):
-        #     state_i = input[i]
-        #     next_state_i = next_state[i]
-        #     key = (state_i[0].item(), state_i[1].item(), state_i[2].item(), state_i[3].item(), state_i[4].item())
-        #     value = (next_state_i[0].item(), next_state_i[1].item(), next_state_i[2].item(), next_state_i[3].item())
-        #
-        #     if key in self.input2output:
-        #         assert self.input2output[key] == value
-        #     else:
-        #         self.input2output[key] = value
+    def check_if_determinate(self, input, next_state):
+        for i in range(len(input)):
+            state_i = input[i]
+            next_state_i = next_state[i]
+            key = (state_i[0].item(), state_i[1].item(), state_i[2].item(), state_i[3].item(), state_i[4].item())
+            value = (next_state_i[0].item(), next_state_i[1].item(), next_state_i[2].item(), next_state_i[3].item())
 
+            if key in self.input2output:
+                assert self.input2output[key] == value
+            else:
+                self.input2output[key] = value
+
+    def add(self, input, next_state, done):
         assert self.state is None
 
         if self.inputs is None:
@@ -71,6 +72,9 @@ class ExperienceDB:
     def get_batches(self, size) -> "iterator":
         # TODO: consider to remove shuffle - it is not efficient
         return DataLoader(self.dataset, batch_size=size, shuffle=True)
+
+    def get_all(self):
+        return self.inputs, self.next_state, self.done
 
     def is_empty(self):
         return self.next_state is None

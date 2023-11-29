@@ -80,35 +80,45 @@ def train_step(policy: PolicyBase, predictor: Predictor):
     trainer.push_environment(parallel_env, default_state)
 
     def on_step_by_env(prev_state, next_state, actions, done):
-        predictor.add_experience(prev_state, next_state, actions, done)
+        if not trainer.policy.is_cloned():
+            predictor.add_experience(prev_state, next_state, actions, done)
 
     steps = 0
 
     while True:
         steps += 1
 
-        result = train(trainer, 50, on_step_by_env)
+        result = train(trainer, 1, on_step_by_env)
         print(f"Env results: {result}")
+        result = train(trainer, 100, on_step_by_env)
+        print(f"Env results at the end: {result}")
 
         if result > 300:
             print(f"Trained in steps {steps}")
             break
 
-        # if predictor.is_ready():
-        #     print("Cur state: ", trainer.state)
-        #     adapter = PredictorAdapter(predictor, default_state)
-        #     adapter.set_state(trainer.state)
-        #     sample_actions = policy.sample_actions(default_state)
-        #     states, rew, done, _ = parallel_env.step(sample_actions)
-        #     states2, rew2, done2, _ = adapter.step(sample_actions)
-        #     print("Env: ", states, rew, done)
-        #     print("Pred: ", states2, rew2, done2)
-        #     print("Predictor stepped")
-        #
-        #     trainer.push_environment(adapter)
-        #     predictor_result = train(trainer, 10000, None)
-        #     trainer.pop_environment()
-        #     print(f"Predictor results: {predictor_result}")
+        if predictor.is_ready():
+            trainer.state = default_state
+            predictor_policy = policy.clone()
+            trainer.policy = predictor_policy
+            # print("Cur state: ", trainer.state)
+            adapter = PredictorAdapter(predictor, default_state)
+            # adapter.set_state(trainer.state)
+            # sample_actions = predictor_policy.sample_actions(default_state)
+            # states, rew, done, _ = parallel_env.step(sample_actions)
+            # states2, rew2, done2, _ = adapter.step(sample_actions)
+            # print("Env: ", states, rew, done)
+            # print("Pred: ", states2, rew2, done2)
+            # print("Predictor stepped")
+
+            trainer.push_environment(adapter)
+            predictor_result = train(trainer, 1000, None)
+            print(f"Predictor results: {predictor_result}")
+
+            trainer.pop_environment()
+            trainer.state = default_state
+            trainer.policy = policy
+            policy.copy_state_from(predictor_policy)
 
 
 if __name__ == '__main__':
