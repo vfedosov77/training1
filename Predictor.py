@@ -8,7 +8,7 @@ from common.utils import create_nn
 from common.Grid import Grid
 from ExperienceDB import ExperienceDB
 from torch.optim.lr_scheduler import StepLR, ExponentialLR
-
+from common.Confidence import Confidence
 
 class Predictor(torch.nn.Module):
     def __init__(self, actions_count: int, layers_sizes: List[int], accepted_state_diff=0.001):
@@ -20,14 +20,12 @@ class Predictor(torch.nn.Module):
         self.network = create_nn(input_size, layers_sizes, False)
         self.done_network = create_nn(layers_sizes[-1], [128, 16, 1], False)
 
-        layers_sizes[-1] = 10
-        self.confidence = create_nn(input_size, layers_sizes, False)
-        self.confidence_pivot = create_nn(input_size, layers_sizes, False)
-
         lr = 0.001
         betas = (0.5, 0.9)
+
+        self.confidence = Confidence(input_size, layers_sizes, lr)
+
         self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=lr, betas=betas)
-        self.confidence_optimizer = torch.optim.Adam(self.confidence.parameters(), lr=lr, betas=betas)
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
         self.scheduler = ExponentialLR(self.state_optimizer, gamma=0.98, verbose=False)
 
@@ -99,8 +97,8 @@ class Predictor(torch.nn.Module):
     def forward(self, state_and_actions: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         predicted_state: torch.Tensor = self.network(state_and_actions)
         done = torch.sigmoid(self.done_network(predicted_state))
-        confidence = self._get_confidence(state_and_actions)
-        done = (done > 0.5) | ~confidence
+        confidence_value = confidence.check_state(state_and_actions)
+        done = (done > 0.5) | ~confidence_value
         return predicted_state.detach(), done.detach()
 
     def _update_extreme(self):
@@ -146,20 +144,8 @@ class Predictor(torch.nn.Module):
 
         if torch.any(ok):
             indices_ok = torch.nonzero(ok).detach()
-            indices_ok = indices_ok.reshape((len(indices_ok)))
-            input_filtered = input[indices_ok].detach()
-            predicted = self.confidence(input_filtered)
-
-            self.confidence.zero_grad()
-            step_loss = self.state_loss(predicted, self.confidence_pivot(input_filtered).detach())
-            step_loss.backward()
-            self.confidence_optimizer.step()
-
-    def _get_confidence(self, input: torch.Tensor):
-        predicted = self.confidence(input.detach())
-        pivot = self.confidence_pivot(input.detach())
-        return (torch.norm(predicted - pivot, dim=1) < 0.1).reshape((len(input), 1))
-
+            indices_ok = indices_ok.squeeze()
+            self.confidence.reinforce_part_of_states(input, indices_ok)
 
     def _train_done(self, state: torch.Tensor, done: torch.Tensor):
         self.done_network.zero_grad()
