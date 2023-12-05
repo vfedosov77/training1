@@ -1,15 +1,15 @@
 import torch
 
-from Policies import A2CPolicy
-
+from Policies import PolicyWithConfidence
 
 class PolicyTrainer:
-    def __init__(self, policy: A2CPolicy):
-        self.policy = policy
+    def __init__(self, policy: PolicyWithConfidence, get_alternative_lambda):
+        self.policy: PolicyWithConfidence = policy
         self.state = None
         self.environment = None
         self.envs_stack = []
         self.steps_done = None
+        self.get_alternative_lambda = get_alternative_lambda
 
     def push_environment(self, new_environment, state = None):
         if self.environment is not None:
@@ -29,6 +29,12 @@ class PolicyTrainer:
 
     def step(self):
         actions = self.policy.sample_actions(self.state)
+
+        if self.get_alternative_lambda is not None:
+            is_bad = self.policy.is_state_bad(self.state)
+            if is_bad.any():
+                actions = self._try_alternative(is_bad, actions)
+
         next_state, rewards, done, _ = self.environment.step(actions)
 
         self.steps_done = (self.steps_done + 1.0) * ~done
@@ -44,6 +50,10 @@ class PolicyTrainer:
         prev_state = self.state
         self.state = next_state
         return prev_state, next_state, actions, done
+
+    def _try_alternative(self, is_bad, actions):
+        alt_actions = self.get_alternative_lambda(self.state, is_bad, actions)
+        return alt_actions
 
     def get_steps_done(self):
         return self.steps_done

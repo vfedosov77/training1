@@ -15,7 +15,9 @@ class Predictor(torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         self.state_size = layers_sizes[-1]
-        input_size = actions_count + layers_sizes[-1]
+        self.actions_count = actions_count
+
+        input_size = 1 + layers_sizes[-1]
 
         self.network = create_nn(input_size, layers_sizes, False)
         self.done_network = create_nn(layers_sizes[-1], [128, 16, 1], False)
@@ -64,8 +66,8 @@ class Predictor(torch.nn.Module):
         self.experience.add(state_and_actions, cur_states_norm, done)
 
         if torch.any(done):
-            indices = torch.nonzero(done.reshape((len(done))))
-            indices = indices.reshape(len(indices))
+            indices = torch.nonzero(done.squeeze())
+            indices = indices.squeeze(axis=1)
             self.extreme_experience.add(state_and_actions[indices], cur_states_norm[indices], done[indices])
 
         if self.experience.size() >= self.batch_size * 20:
@@ -97,9 +99,29 @@ class Predictor(torch.nn.Module):
     def forward(self, state_and_actions: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         predicted_state: torch.Tensor = self.network(state_and_actions)
         done = torch.sigmoid(self.done_network(predicted_state))
-        confidence_value = confidence.check_state(state_and_actions)
-        done = (done > 0.5) | ~confidence_value
-        return predicted_state.detach(), done.detach()
+        confidence_value = self.confidence.check_state(state_and_actions)
+        done = done > 0.5
+        return predicted_state.detach(), done.detach(), confidence_value
+
+    def find_best_action(self, state: torch.Tensor, default_action: torch.Tensor, is_state_bad_lambda, max_depth=3):
+        best = -1
+
+        for i in range(self.actions_count):
+            state_and_action = torch.cat((state, torch.full((1,), i)), dim=0)
+            next_state = self.network(state_and_action)
+            is_bad = is_state_bad_lambda(next_state)
+            is_done = self._get_done(next_state).item()
+
+            if not is_bad and not is_done:
+                if i == default_action.item():
+                    return default_action
+
+                best = i
+
+        if best == -1:
+            return default_action
+
+        return torch.full((1,), best)
 
     def _update_extreme(self):
         inputs, next_states, done = self.experience.get_all()
@@ -109,11 +131,8 @@ class Predictor(torch.nn.Module):
         state_not_ok = torch.norm(predicted_state - next_states, dim=1) >= 0.1
         done_not_ok = (predicted_done > 0.5) != done
 
-        not_ok = done_not_ok.reshape((len(done_not_ok))) | state_not_ok
-        done_ids = torch.nonzero(done_not_ok)
-        state_ids = torch.nonzero(state_not_ok)
-        ids = torch.nonzero(not_ok)
-        ids = ids.reshape((len(ids)))
+        not_ok = done_not_ok.squeeze() | state_not_ok
+        ids = torch.nonzero(not_ok).squeeze(axis=1)
         self.extreme_experience.add(inputs[ids], next_states[ids], done[ids])
 
     def _train(self, input: torch.Tensor, curent_state: torch.Tensor, done: torch.Tensor):
@@ -131,7 +150,7 @@ class Predictor(torch.nn.Module):
         done_ok = self._train_done(curent_state, done)
 
         # Confidence
-        self._train_confidence(input, state_ok.reshape((len(state_ok))), done_ok.reshape((len(done_ok))))
+        self._train_confidence(input, state_ok.squeeze(), done_ok.squeeze())
 
         if self.step % 500 == 0:
             lr = self.scheduler.get_last_lr()
@@ -146,6 +165,10 @@ class Predictor(torch.nn.Module):
             indices_ok = torch.nonzero(ok).detach()
             indices_ok = indices_ok.squeeze()
             self.confidence.reinforce_part_of_states(input, indices_ok)
+
+    def _get_done(self, predicted: torch.Tensor):
+        done = torch.sigmoid(self.done_network(predicted))
+        return (done > 0.5).detach()
 
     def _train_done(self, state: torch.Tensor, done: torch.Tensor):
         self.done_network.zero_grad()

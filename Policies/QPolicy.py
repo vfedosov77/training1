@@ -24,6 +24,9 @@ class QPolicy(PolicyBase):
 
         PolicyBase.__init__(self, name)
 
+    def get_lr(self):
+        return self.lr
+
     def _update_values(self,
                        prev_state: torch.Tensor,
                        actions: torch.Tensor,

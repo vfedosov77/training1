@@ -18,7 +18,7 @@ class PredictorAdapter:
         self.state = state
 
     def step(self, actions):
-        state, done = self.predictor(self.predictor.unite_state_and_actions(self.state, actions))
+        state, done, confidence = self.predictor(self.predictor.unite_state_and_actions(self.state, actions))
         self.state = state #(state * ~done) + (self.defaultState * done)
         reward = self.step_reward * ~done
 

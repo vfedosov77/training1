@@ -6,6 +6,8 @@ from parallel_env import *
 import cv2
 import multiprocessing
 from Policies.QPolicy import *
+from Policies.PolicyWithConfidence import PolicyWithConfidence
+
 
 num_envs = os.cpu_count()
 
@@ -69,19 +71,32 @@ def train(trainer: PolicyTrainer, steps_count, callback):
 
     return sum(steps_counts) / len(steps_counts)
 
-
-def train_step(policy: PolicyBase, predictor: Predictor):
+def train_step(policy: PolicyWithConfidence, predictor: Predictor):
     global backup
-    policy.clean(num_envs)
-
-    trainer = PolicyTrainer(policy)
-
-    default_state = parallel_env.reset()
-    trainer.push_environment(parallel_env, default_state)
 
     def on_step_by_env(prev_state, next_state, actions, done):
         if not trainer.policy.is_cloned():
             predictor.add_experience(prev_state, next_state, actions, done)
+
+    def get_alternative(state, is_bad, actions):
+        if not predictor.is_ready():
+            return actions
+
+        alt_actions = torch.stack([
+            predictor.find_best_action(s1, actions[id], lambda s2: policy.is_state_bad(s2.unsqueeze(0)).item())
+                if is_bad[id].item() else actions[id]
+            for id, s1 in enumerate(state)])
+
+        assert alt_actions.shape == actions.shape
+        return alt_actions
+
+
+    policy.clean(num_envs)
+
+    trainer = PolicyTrainer(policy, get_alternative)
+
+    default_state = parallel_env.reset()
+    trainer.push_environment(parallel_env, default_state)
 
     steps = 0
 
@@ -97,23 +112,23 @@ def train_step(policy: PolicyBase, predictor: Predictor):
             print(f"Trained in steps {steps}")
             break
 
-        if predictor.is_ready():
-            trainer.state = default_state
-            predictor_policy = policy.clone()
-            trainer.policy = predictor_policy
-            # print("Cur state: ", trainer.state)
-            adapter = PredictorAdapter(predictor, default_state)
-            # adapter.set_state(trainer.state)
-            # sample_actions = predictor_policy.sample_actions(default_state)
-            # states, rew, done, _ = parallel_env.step(sample_actions)
-            # states2, rew2, done2, _ = adapter.step(sample_actions)
-            # print("Env: ", states, rew, done)
-            # print("Pred: ", states2, rew2, done2)
-            # print("Predictor stepped")
-
-            trainer.push_environment(adapter)
-            predictor_result = train(trainer, 1000, None)
-            print(f"Predictor results: {predictor_result}")
+        # if predictor.is_ready():
+        #     trainer.state = default_state
+        #     predictor_policy = policy.clone()
+        #     trainer.policy = predictor_policy
+        #     # print("Cur state: ", trainer.state)
+        #     adapter = PredictorAdapter(predictor, default_state)
+        #     # adapter.set_state(trainer.state)
+        #     # sample_actions = predictor_policy.sample_actions(default_state)
+        #     # states, rew, done, _ = parallel_env.step(sample_actions)
+        #     # states2, rew2, done2, _ = adapter.step(sample_actions)
+        #     # print("Env: ", states, rew, done)
+        #     # print("Pred: ", states2, rew2, done2)
+        #     # print("Predictor stepped")
+        #
+        #     trainer.push_environment(adapter)
+        #     predictor_result = train(trainer, 1000, None)
+        #     print(f"Predictor results: {predictor_result}")
 
             trainer.pop_environment()
             trainer.state = default_state
@@ -131,8 +146,10 @@ if __name__ == '__main__':
     actions = 2#parallel_env.action_space.n
 
     #print(f"State dimensions: {dims}. Actions: {actions}")
-    policy = QPolicy("policy", dims, [64, 128, 64, actions])
-    predictor = Predictor(1, [1024, 256, 64, dims])
+    layers = [64, 128, 64, actions]
+    policy = QPolicy("policy", dims, layers)
+    policy = PolicyWithConfidence(policy, dims, layers, policy.get_lr())
+    predictor = Predictor(actions, [1024, 256, 64, dims])
 
     train_step(policy, predictor)
 
