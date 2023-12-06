@@ -34,12 +34,13 @@ class PolicyWithConfidence(PolicyBase):
                         well_done: torch.Tensor):
         PolicyBase.set_step_reward(self, prev_state, new_state, actions, reward, done, well_done)
         self.policy.set_step_reward(prev_state, new_state, actions, reward, done, well_done)
-        self._update_confidence(done, prev_state)
+        self._update_confidence(done, prev_state, well_done)
 
     def is_state_bad(self, state: torch.Tensor):
         return self.bad_state_confidence.check_state(state)
 
-    def _update_confidence(self, done, prev_state):
+    def _update_confidence(self, done, prev_state, well_done):
+        done = done & (~well_done)
         prev_state_3d = prev_state.unsqueeze(0)
 
         if self.last_states is None:
@@ -49,6 +50,7 @@ class PolicyWithConfidence(PolicyBase):
                 self.last_states = torch.cat((self.last_states[1:], prev_state_3d), dim=0)
             else:
                 self.last_states = torch.cat((self.last_states, prev_state_3d), dim=0)
+
         if done.any():
             done_ids = torch.nonzero(done.squeeze() == True).squeeze(axis=1)
             bad_states = self.last_states[:, done_ids]

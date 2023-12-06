@@ -10,6 +10,10 @@ class PolicyTrainer:
         self.envs_stack = []
         self.steps_done = None
         self.get_alternative_lambda = get_alternative_lambda
+        self.use_althernatives = False
+
+    def activate_althernatives(self, use_althernatives):
+        self.use_althernatives = use_althernatives
 
     def push_environment(self, new_environment, state = None):
         if self.environment is not None:
@@ -30,7 +34,7 @@ class PolicyTrainer:
     def step(self):
         actions = self.policy.sample_actions(self.state)
 
-        if self.get_alternative_lambda is not None:
+        if self.get_alternative_lambda is not None and self.use_althernatives:
             is_bad = self.policy.is_state_bad(self.state)
             if is_bad.any():
                 actions = self._try_alternative(is_bad, actions)
@@ -44,7 +48,7 @@ class PolicyTrainer:
         #    print(f"max steps: {max_steps}")
         #    max_steps = 0
 
-        well_done = self.steps_done > 498.0
+        well_done = self.steps_done > 450.0
         self.policy.set_step_reward(self.state, next_state, actions, rewards, done, well_done)
 
         prev_state = self.state

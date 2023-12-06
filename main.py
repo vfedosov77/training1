@@ -15,6 +15,7 @@ num_envs = os.cpu_count()
 class PreprocessEnv(ParallelWrapper):
     def __init__(self, env):
         ParallelWrapper.__init__(self, env)
+        self.count = 0
 
     def reset(self):
         state = self.venv.reset()
@@ -29,7 +30,11 @@ class PreprocessEnv(ParallelWrapper):
         next_state = torch.from_numpy(next_state).float()
         reward = torch.tensor(reward).unsqueeze(1).float()
         done = torch.tensor(done).unsqueeze(1)
+        self.count += len(next_state)
         return next_state, reward, done, info
+
+    def get_count(self):
+        return self.count
 
 class PreprocessEnv1Item:
     def __init__(self, env):
@@ -102,11 +107,12 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
 
     while True:
         steps += 1
-
+        trainer.activate_althernatives(True)
         result = train(trainer, 1, on_step_by_env)
+        trainer.activate_althernatives(False)
         print(f"Env results: {result}")
-        result = train(trainer, 100, on_step_by_env)
-        print(f"Env results at the end: {result}")
+        result2 = train(trainer, 100, on_step_by_env)
+        print(f"Env results at the end: {result2}")
 
         if result > 300:
             print(f"Trained in steps {steps}")
@@ -130,10 +136,10 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
         #     predictor_result = train(trainer, 1000, None)
         #     print(f"Predictor results: {predictor_result}")
 
-            trainer.pop_environment()
-            trainer.state = default_state
-            trainer.policy = policy
-            policy.copy_state_from(predictor_policy)
+            # trainer.pop_environment()
+            # trainer.state = default_state
+            # trainer.policy = policy
+            # policy.copy_state_from(predictor_policy)
 
 
 if __name__ == '__main__':
@@ -152,6 +158,8 @@ if __name__ == '__main__':
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
     train_step(policy, predictor)
+    steps_count = parallel_env.get_count()
+    print(f"Trained by simulated step count: {steps_count}")
 
     ev1 = create_env('CartPole-v1')
     state = ev1.reset()
