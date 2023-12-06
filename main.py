@@ -162,7 +162,7 @@ if __name__ == '__main__':
         cv2.imshow("asd", img)
         cv2.waitKey(50)
         policy.clean(1)
-        act = policy.sample_actions(torch.from_numpy(state))
+        act = policy.sample_actions(torch.from_numpy(state).reshape((1, dims)))
         state, _, done, _ = ev1.step(act[0].item())
 
 

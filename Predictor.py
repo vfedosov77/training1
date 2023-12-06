@@ -25,7 +25,7 @@ class Predictor(torch.nn.Module):
         lr = 0.001
         betas = (0.5, 0.9)
 
-        self.confidence = Confidence(input_size, layers_sizes, lr)
+        # self.confidence = Confidence(input_size, layers_sizes, lr)
 
         self.state_optimizer = torch.optim.Adam(self.network.parameters(), lr=lr, betas=betas)
         self.done_optimizer = torch.optim.Adam(self.done_network.parameters(), lr=0.0003)
@@ -33,7 +33,6 @@ class Predictor(torch.nn.Module):
 
         self.step = 0
         self.experience = ExperienceDB()
-        self.extreme_experience = ExperienceDB()
         self.tests_passed = 0
         self.accepted_state_diff = accepted_state_diff
         self.batch_size = 256
@@ -47,8 +46,8 @@ class Predictor(torch.nn.Module):
     def is_ready(self):
         return self.is_ready_flag
 
-    def _normalize_state(self, state):
-        return state# * self.state_norm_coefficients
+    # def _normalize_state(self, state):
+    #     return state# * self.state_norm_coefficients
 
     def add_experience(self,
                        prev_states: torch.Tensor,
@@ -56,42 +55,31 @@ class Predictor(torch.nn.Module):
                        actions: torch.Tensor,
                        done: torch.Tensor):
         done = done.float()
+        # norm_prev = self._normalize_state(prev_states)
+        # norm_actions = actions * 2.0 - 1.0
+        state_and_actions = self.unite_state_and_actions(prev_states, actions)
+        # cur_states_norm = self._normalize_state(cur_states)
+        self.experience.add(state_and_actions, cur_states, done)
 
-        #if not self.experience.is_empty():
-        #    self._test(prev_states, cur_states, actions, done)
-        norm_prev = self._normalize_state(prev_states)
-        norm_actions = actions * 2.0 - 1.0
-        state_and_actions = self.unite_state_and_actions(norm_prev, norm_actions)
-        cur_states_norm = self._normalize_state(cur_states)
-        self.experience.add(state_and_actions, cur_states_norm, done)
+        if not self.is_ready_flag:
+            if self.experience.size() >= self.batch_size * 20:
+                self._train_to_get_ready()
+        else:
+            strange_input, strange_state, strange_done = self._get_strange(state_and_actions, cur_states, done)
 
-        if torch.any(done):
-            indices = torch.nonzero(done.squeeze())
-            indices = indices.squeeze(axis=1)
-            self.extreme_experience.add(state_and_actions[indices], cur_states_norm[indices], done[indices])
-
-        if self.experience.size() >= self.batch_size * 20:
-            iterations_count = 250 if not self.is_ready_flag else 1
-
-            for i in range(iterations_count):
-                self.scheduler.step()
-                for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
+            if strange_input is not None:
+                it = iter(self.experience.get_batches(self.batch_size))
+                for input_batch, state_batch, done_batch in (next(it), next(it)):
                     self._train(input_batch, state_batch, done_batch)
+                    self._train(strange_input, strange_state, strange_done)
 
-                if i % 5 == 0:
-                    for input_batch, state_batch, done_batch in self.extreme_experience.get_batches(self.batch_size):
-                        self._train(input_batch, state_batch, done_batch)
-
-            if not self.is_ready_flag:
-                self._update_extreme()
-
-                for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
-                    self._train(input_batch, state_batch, done_batch)
-
-                for input_batch, state_batch, done_batch in self.extreme_experience.get_batches(self.batch_size):
-                    self._train(input_batch, state_batch, done_batch)
-
-            self.is_ready_flag = True
+    def _train_to_get_ready(self):
+        iterations_count = 250
+        for i in range(iterations_count):
+            self.scheduler.step()
+            for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):
+                self._train(input_batch, state_batch, done_batch)
+        self.is_ready_flag = True
 
     def unite_state_and_actions(self, prev_states, actions):
         return torch.cat((prev_states, actions), dim=1)
@@ -99,9 +87,9 @@ class Predictor(torch.nn.Module):
     def forward(self, state_and_actions: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         predicted_state: torch.Tensor = self.network(state_and_actions)
         done = torch.sigmoid(self.done_network(predicted_state))
-        confidence_value = self.confidence.check_state(state_and_actions)
+        # confidence_value = self.confidence.check_state(state_and_actions)
         done = done > 0.5
-        return predicted_state.detach(), done.detach(), confidence_value
+        return predicted_state.detach(), done.detach()  # , confidence_value
 
     def find_best_action(self, state: torch.Tensor, default_action: torch.Tensor, is_state_bad_lambda, max_depth=3):
         best = -1
@@ -123,18 +111,6 @@ class Predictor(torch.nn.Module):
 
         return torch.full((1,), best)
 
-    def _update_extreme(self):
-        inputs, next_states, done = self.experience.get_all()
-        predicted_state: torch.Tensor = self.network(inputs)
-        predicted_done = torch.sigmoid(self.done_network(predicted_state))
-
-        state_not_ok = torch.norm(predicted_state - next_states, dim=1) >= 0.1
-        done_not_ok = (predicted_done > 0.5) != done
-
-        not_ok = done_not_ok.squeeze() | state_not_ok
-        ids = torch.nonzero(not_ok).squeeze(axis=1)
-        self.extreme_experience.add(inputs[ids], next_states[ids], done[ids])
-
     def _train(self, input: torch.Tensor, curent_state: torch.Tensor, done: torch.Tensor):
         # Prediction
         predicted = self.network(input.detach())
@@ -150,7 +126,7 @@ class Predictor(torch.nn.Module):
         done_ok = self._train_done(curent_state, done)
 
         # Confidence
-        self._train_confidence(input, state_ok.squeeze(), done_ok.squeeze())
+        # self._train_confidence(input, state_ok.squeeze(), done_ok.squeeze())
 
         if self.step % 500 == 0:
             lr = self.scheduler.get_last_lr()
@@ -158,13 +134,13 @@ class Predictor(torch.nn.Module):
 
         self.step += 1
 
-    def _train_confidence(self, input: torch.Tensor, state_ok: torch.Tensor, done_ok: torch.Tensor):
-        ok = done_ok * state_ok
-
-        if torch.any(ok):
-            indices_ok = torch.nonzero(ok).detach()
-            indices_ok = indices_ok.squeeze()
-            self.confidence.reinforce_part_of_states(input, indices_ok)
+    # def _train_confidence(self, input: torch.Tensor, state_ok: torch.Tensor, done_ok: torch.Tensor):
+    #     ok = done_ok * state_ok
+    #
+    #     if torch.any(ok):
+    #         indices_ok = torch.nonzero(ok).detach()
+    #         indices_ok = indices_ok.squeeze()
+    #         self.confidence.reinforce_part_of_states(input, indices_ok)
 
     def _get_done(self, predicted: torch.Tensor):
         done = torch.sigmoid(self.done_network(predicted))
@@ -181,3 +157,22 @@ class Predictor(torch.nn.Module):
             print (f"Predictor loss by done: {done_loss.item()}")
 
         return (predicted_done > 0.5) == done
+
+    def _get_strange(self, input: torch.Tensor, curent_state: torch.Tensor, done: torch.Tensor):
+        predicted, predicted_done = self.forward(input)
+        diff = torch.norm((predicted - curent_state), dim=1)
+        wrong_state_ids: torch.Tensor = torch.nonzero(diff > 0.1).squeeze(axis=1)
+        strange_ids = set(wrong_state_ids.tolist())
+        wrong_done_ids = torch.nonzero((predicted_done != done).squeeze(axis=1)).squeeze(axis=1)
+        strange_ids.update(wrong_done_ids.tolist())
+
+        if not strange_ids:
+            return None, None, None
+
+        strange_ids = list(strange_ids)
+        result_shape = (len(strange_ids), -1)
+
+        return input[strange_ids].reshape(result_shape),\
+            curent_state[strange_ids].reshape(result_shape), \
+            done[strange_ids].reshape(result_shape)
+
