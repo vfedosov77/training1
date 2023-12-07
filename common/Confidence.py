@@ -11,7 +11,7 @@ class Confidence:
         output_size = 10
         confidence_layers = list.copy(main_nn_layers_sizes)
         confidence_layers[-1] = output_size
-        self.nn, self.optimizer = create_nn_and_optimizer(input_size, confidence_layers, False, main_nn_lr)
+        self.nn, self.optimizer = create_nn_and_optimizer(input_size, confidence_layers, main_nn_lr)
         self.pivot = create_nn(input_size, confidence_layers, False)
         self.state_loss = torch.nn.MSELoss()
 

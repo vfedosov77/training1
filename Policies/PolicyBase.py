@@ -12,6 +12,9 @@ class PolicyBase(metaclass=ABCMeta):
         self.step = 0
         self.cloned = False
 
+    def activate_exploratory(self, is_active: bool):
+        pass
+
     def is_cloned(self):
         return self.cloned
 

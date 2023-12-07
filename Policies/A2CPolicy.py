@@ -11,9 +11,9 @@ class A2CPolicy(PolicyBase):
     def __init__(self, name: str, input_size: int, layers_sizes: List[int]):
         self.input_size = input_size
         self.layers_sizes = layers_sizes.copy()
-        self.policy, self.policy_optim = create_nn_and_optimizer(input_size, layers_sizes, True, 0.001)
+        self.policy, self.policy_optim = create_nn_and_optimizer(input_size, layers_sizes, 0.001, add_softmax=True)
         layers_sizes[-1] = 1
-        self.values, self.values_optim = create_nn_and_optimizer(input_size, layers_sizes, False, 0.001)
+        self.values, self.values_optim = create_nn_and_optimizer(input_size, layers_sizes, 0.001)
         self.values_lost = torch.nn.MSELoss()
         PolicyBase.__init__(self, name)
 

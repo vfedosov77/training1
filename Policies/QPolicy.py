@@ -15,14 +15,17 @@ class QPolicy(PolicyBase):
         self.input_size = input_size
         self.layers_sizes = list.copy(layers_sizes)
         self.lr = 0.001
-        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes, False, self.lr)
+        self.qvalues, self.qvalues_optim = create_nn_and_optimizer(input_size, layers_sizes,  self.lr, add_softmax=False)
         self.target_q_network = copy.deepcopy(self.qvalues).eval()
         self.values_lost = torch.nn.MSELoss()
         self.buffer = ExperienceDB()
         self.batch_size = 64
-        self.exploratiry_probability = 0.2
+        self.exploratory_probability = 0.2
 
         PolicyBase.__init__(self, name)
+
+    def activate_exploratory(self, is_active):
+        self.exploratory_probability = 0.2 if is_active else 0.0
 
     def get_lr(self):
         return self.lr
@@ -64,7 +67,7 @@ class QPolicy(PolicyBase):
         pass
 
     def _sample_actions_impl(self, state) -> torch.Tensor:
-        use_exploratory = torch.rand(len(state), 1) < self.exploratiry_probability
+        use_exploratory = torch.rand(len(state), 1) < self.exploratory_probability
         next_values = self.qvalues(state)
         next_value = torch.argmax(next_values, dim=-1, keepdim=True)
         exploratory = torch.randint(0, next_values.shape[1], (next_values.shape[0], 1))

@@ -14,6 +14,7 @@ class PolicyTrainer:
 
     def activate_althernatives(self, use_althernatives):
         self.use_althernatives = use_althernatives
+        self.policy.policy.activate_exploratory(not use_althernatives)
 
     def push_environment(self, new_environment, state = None):
         if self.environment is not None:
