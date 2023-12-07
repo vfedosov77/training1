@@ -1,13 +1,12 @@
 from PolicyTrainer import PolicyTrainer
-from Predictor import Predictor
-from PredictorAdapter import PredictorAdapter
+from NnTools.Predictor import Predictor
 from utils import seed_everything
 from parallel_env import *
 import cv2
 import multiprocessing
 from Policies.QPolicy import *
 from Policies.PolicyWithConfidence import PolicyWithConfidence
-
+from NnTools.BruteForce import BruteForce
 
 num_envs = os.cpu_count()
 
@@ -83,40 +82,29 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
         if not trainer.policy.is_cloned():
             predictor.add_experience(prev_state, next_state, actions, done)
 
-    def get_alternative(state, is_bad, actions):
-        if not predictor.is_ready():
-            return actions
-
-        alt_actions = torch.stack([
-            predictor.find_best_action(s1, actions[id], lambda s2: policy.is_state_bad(s2.unsqueeze(0)).item())
-                if is_bad[id].item() else actions[id]
-            for id, s1 in enumerate(state)])
-
-        assert alt_actions.shape == actions.shape
-        return alt_actions
-
-
     policy.clean(num_envs)
 
-    trainer = PolicyTrainer(policy, get_alternative)
+    trainer = PolicyTrainer(policy, BruteForce(policy, predictor, [0, 1]))
 
     default_state = parallel_env.reset()
-    trainer.push_environment(parallel_env, default_state)
+    trainer.set_environment(parallel_env, default_state)
 
     steps = 0
 
     while True:
         steps += 1
-        trainer.activate_althernatives(True)
-        result = train(trainer, 1, on_step_by_env)
-        trainer.activate_althernatives(False)
-        print(f"Env results: {result}")
+        trainer.activate_alternatives(predictor.is_ready())
+
+        with policy.suppress_exploratory():
+            result = train(trainer, 1, on_step_by_env)
+            print(f"Env results: {result}")
+
+            if result > 300:
+                print(f"Trained in steps {steps}")
+                break
+
         result2 = train(trainer, 100, on_step_by_env)
         print(f"Env results at the end: {result2}")
-
-        if result > 300:
-            print(f"Trained in steps {steps}")
-            break
 
         # if predictor.is_ready():
         #     trainer.state = default_state
@@ -154,7 +142,6 @@ if __name__ == '__main__':
     #print(f"State dimensions: {dims}. Actions: {actions}")
     layers = [64, 128, 64, actions]
     policy = QPolicy("policy", dims, layers)
-    policy = PolicyWithConfidence(policy, dims, layers, policy.get_lr())
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
     train_step(policy, predictor)

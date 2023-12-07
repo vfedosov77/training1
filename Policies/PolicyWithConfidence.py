@@ -2,8 +2,7 @@ from typing import List
 
 import torch
 from Policies.PolicyBase import PolicyBase
-from common.DangerEstimator import DangerEstimator
-from common.utils import get_binary_equality
+from NnTools.DangerEstimator import DangerEstimator
 
 
 class PolicyWithConfidence(PolicyBase):

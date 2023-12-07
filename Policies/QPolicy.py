@@ -1,13 +1,10 @@
-import numpy as np
 import torch
 import copy
-import io
 from typing import *
 from diagrams import *
-from overrides import overrides
 from common.utils import create_nn_and_optimizer
 from Policies.PolicyBase import PolicyBase
-from ExperienceDB import ExperienceDB
+from NnTools.ExperienceDB import ExperienceDB
 
 
 class QPolicy(PolicyBase):
@@ -23,9 +20,6 @@ class QPolicy(PolicyBase):
         self.exploratory_probability = 0.2
 
         PolicyBase.__init__(self, name)
-
-    def activate_exploratory(self, is_active):
-        self.exploratory_probability = 0.2 if is_active else 0.0
 
     def get_lr(self):
         return self.lr
@@ -67,12 +61,16 @@ class QPolicy(PolicyBase):
         pass
 
     def _sample_actions_impl(self, state) -> torch.Tensor:
-        use_exploratory = torch.rand(len(state), 1) < self.exploratory_probability
+        use_exploratory = (torch.rand(len(state), 1) < self.exploratory_probability) * self.exploratory
         next_values = self.qvalues(state)
         next_value = torch.argmax(next_values, dim=-1, keepdim=True)
         exploratory = torch.randint(0, next_values.shape[1], (next_values.shape[0], 1))
         actions = ((next_value * ~use_exploratory) + (exploratory * use_exploratory)).detach()
         return actions
+
+    def get_q_value(self, state) -> torch.Tensor:
+        next_values = self.qvalues(state)
+        return torch.max(next_values, dim=-1, keepdim=True)[0].detach()
 
     def clone(self):
         new_policy = QPolicy(self.name, self.input_size, self.layers_sizes)

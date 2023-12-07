@@ -1,14 +1,9 @@
-import numpy as np
 import torch
-import io
-from abc import abstractmethod, ABCMeta
 from typing import *
-from diagrams import *
 from common.utils import create_nn
-from common.Grid import Grid
-from ExperienceDB import ExperienceDB
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
-from common.Confidence import Confidence
+from NnTools.ExperienceDB import ExperienceDB
+from torch.optim.lr_scheduler import ExponentialLR
+
 
 class Predictor(torch.nn.Module):
     def __init__(self, actions_count: int, layers_sizes: List[int], accepted_state_diff=0.001):
@@ -83,6 +78,9 @@ class Predictor(torch.nn.Module):
 
     def unite_state_and_actions(self, prev_states, actions):
         return torch.cat((prev_states, actions), dim=1)
+
+    def predict(self, prev_states, actions):
+        return self.forward(self.unite_state_and_actions(prev_states, actions))
 
     def forward(self, state_and_actions: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         predicted_state: torch.Tensor = self.network(state_and_actions)
