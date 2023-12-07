@@ -27,7 +27,7 @@ class PolicyTrainer:
         actions = self.policy.sample_actions(self.state)
 
         if self.brute_force and self.use_alternatives:
-            have_better = self.brute_force.check_alternative(self.state, self.done, 5)
+            have_better = self.brute_force.check_alternative(self.state, self.done, actions, 5)
             actions = actions * (~have_better) + (1 - actions) * have_better
 
         next_state, rewards, done, _ = self.environment.step(actions)

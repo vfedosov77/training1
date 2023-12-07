@@ -80,7 +80,7 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
 
     def on_step_by_env(prev_state, next_state, actions, done):
         if not trainer.policy.is_cloned():
-            predictor.add_experience(prev_state, next_state, actions, done)
+            pass#predictor.add_experience(prev_state, next_state, actions, done)
 
     policy.clean(num_envs)
 
@@ -93,7 +93,7 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
 
     while True:
         steps += 1
-        trainer.activate_alternatives(predictor.is_ready())
+        #trainer.activate_alternatives(predictor.is_ready())
 
         with policy.suppress_exploratory():
             result = train(trainer, 1, on_step_by_env)
