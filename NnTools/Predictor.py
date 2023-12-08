@@ -57,7 +57,7 @@ class Predictor(torch.nn.Module):
         self.experience.add(state_and_actions, cur_states, done)
 
         if not self.is_ready_flag:
-            if self.experience.size() >= self.batch_size * 20:
+            if self.experience.size() >= self.batch_size * 60:
                 self._train_to_get_ready()
         else:
             strange_input, strange_state, strange_done = self._get_strange(state_and_actions, cur_states, done)
@@ -69,7 +69,7 @@ class Predictor(torch.nn.Module):
                     self._train(strange_input, strange_state, strange_done)
 
     def _train_to_get_ready(self):
-        iterations_count = 250
+        iterations_count = 80
         for i in range(iterations_count):
             self.scheduler.step()
             for input_batch, state_batch, done_batch in self.experience.get_batches(self.batch_size):

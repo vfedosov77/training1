@@ -48,12 +48,12 @@ class BruteForce:
         not_policy_state, new_done = self.predictor.predict(state, 1 - actions)
         new_done = new_done | done
         not_policy_q = self._explore(not_policy_state, new_done, n_steps - 1)
-        use_alternative = not_policy_q > (policy_q * 1.5)
+        use_alternative = not_policy_q > (policy_q * 2.0)
 
-        if use_alternative.any():
-            print("use alt")
+        # if use_alternative.any():
+        #    print("use alt")
 
-        return use_alternative.shape
+        return use_alternative
 
 
 
