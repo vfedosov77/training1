@@ -36,17 +36,16 @@ class PreprocessEnv1Item:
 
     def reset(self):
         state = self.env.reset()
-        state = torch.Tensor([state])
+        state = torch.from_numpy(state).reshape((1, -1))
         return state
 
     def step(self, actions):
         action = int(actions[0].item())
         next_state, reward, done, info = self.env.step(action)
         next_state = np.array(next_state)
-        next_state = torch.Tensor([next_state])
-        reward_tensor = torch.Tensor([[reward]])
-        done_tensor = torch.zeros([1, 1], dtype=torch.bool)
-        done_tensor[0] = done
+        next_state = torch.from_numpy(next_state).reshape((1, -1))
+        reward_tensor = torch.full((1, 1), reward)
+        done_tensor = torch.full((1, 1), done)
         return next_state, reward_tensor, done_tensor, info
 
 
@@ -75,23 +74,22 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
 
     def on_step_by_env(prev_state, next_state, actions, done):
         if not trainer.policy.is_cloned():
-            pass#predictor.add_experience(prev_state, next_state, actions, done)
+            predictor.add_experience(prev_state, next_state, actions, done)
 
     policy.clean(num_envs)
 
     trainer = PolicyTrainer(policy, BruteForce(policy, predictor, [0, 1]))
 
-    default_state = parallel_env.reset()
-    trainer.set_environment(parallel_env, default_state)
+    trainer.set_environment(parallel_env)
 
     steps = 0
 
     while True:
         steps += 1
-        #trainer.activate_alternatives(predictor.is_ready())
+        trainer.activate_alternatives(predictor.is_ready())
 
         with trainer.suppress_training():
-            result = train(trainer, 400, on_step_by_env)
+            result = train(trainer, 400, None)
             print(f"Env results: {result}")
 
             if result > 240:
@@ -145,17 +143,21 @@ if __name__ == '__main__':
     print(f"Trained by simulated step count: {steps_count}")
 
     ev1 = create_env('CartPole-v1')
-    state = ev1.reset()
+    env_wrap = PreprocessEnv1Item(ev1)
     done = False
 
-    with policy.suppress_exploratory():
+    trainer = PolicyTrainer(policy, BruteForce(policy, predictor, [0, 1]))
+    trainer.set_environment(env_wrap)
+    trainer.activate_alternatives(True)
+    policy.clean(1)
+
+    with trainer.suppress_training():
         while not done:
             img = ev1.render(mode='rgb_array')
             cv2.imshow("asd", img)
             cv2.waitKey(50)
-            policy.clean(1)
-            act = policy.sample_actions(torch.from_numpy(state).reshape((1, dims)))
-            state, _, done, _ = ev1.step(act[0].item())
+            state, _, _, done = trainer.step()
+            done = done.item()
 
 
 

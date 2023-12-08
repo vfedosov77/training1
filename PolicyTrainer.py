@@ -41,8 +41,8 @@ class PolicyTrainer:
     def activate_alternatives(self, use_alternatives):
         self.use_alternatives = use_alternatives
 
-    def set_environment(self, environment, state=None):
-        self.state = environment.reset() if state is None else state
+    def set_environment(self, environment):
+        self.state = environment.reset()
         self.steps_done = torch.full([self.state.shape[0], 1], 0.0)
         self.done = torch.full([self.state.shape[0], 1], False)
         self.environment = environment
