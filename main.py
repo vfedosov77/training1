@@ -14,7 +14,6 @@ num_envs = os.cpu_count()
 class PreprocessEnv(ParallelWrapper):
     def __init__(self, env):
         ParallelWrapper.__init__(self, env)
-        self.count = 0
 
     def reset(self):
         state = self.venv.reset()
@@ -29,11 +28,7 @@ class PreprocessEnv(ParallelWrapper):
         next_state = torch.from_numpy(next_state).float()
         reward = torch.tensor(reward).unsqueeze(1).float()
         done = torch.tensor(done).unsqueeze(1)
-        self.count += len(next_state)
         return next_state, reward, done, info
-
-    def get_count(self):
-        return self.count
 
 class PreprocessEnv1Item:
     def __init__(self, env):
@@ -63,10 +58,10 @@ def create_env(env_name):
 backup = None
 
 
-def train(trainer: PolicyTrainer, steps_count, callback):
+def train(trainer: PolicyTrainer, steps_amount, callback):
     steps_counts = []
 
-    for id in range(steps_count):
+    for id in range(steps_amount):
         prev_state, next_state, actions, done = trainer.step()
         steps_counts.append(trainer.get_steps_done().mean().item())
 
@@ -95,15 +90,15 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
         steps += 1
         #trainer.activate_alternatives(predictor.is_ready())
 
-        with policy.suppress_exploratory():
-            result = train(trainer, 1, on_step_by_env)
+        with trainer.suppress_training():
+            result = train(trainer, 400, on_step_by_env)
             print(f"Env results: {result}")
 
-            if result > 300:
+            if result > 240:
                 print(f"Trained in steps {steps}")
                 break
 
-        result2 = train(trainer, 100, on_step_by_env)
+        result2 = train(trainer, 500, on_step_by_env)
         print(f"Env results at the end: {result2}")
 
         # if predictor.is_ready():
@@ -129,6 +124,8 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
             # trainer.policy = policy
             # policy.copy_state_from(predictor_policy)
 
+    return trainer.get_active_env_steps()
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -144,21 +141,21 @@ if __name__ == '__main__':
     policy = QPolicy("policy", dims, layers)
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
-    train_step(policy, predictor)
-    steps_count = parallel_env.get_count()
+    steps_count = train_step(policy, predictor)
     print(f"Trained by simulated step count: {steps_count}")
 
     ev1 = create_env('CartPole-v1')
     state = ev1.reset()
     done = False
 
-    while not done:
-        img = ev1.render(mode='rgb_array')
-        cv2.imshow("asd", img)
-        cv2.waitKey(50)
-        policy.clean(1)
-        act = policy.sample_actions(torch.from_numpy(state).reshape((1, dims)))
-        state, _, done, _ = ev1.step(act[0].item())
+    with policy.suppress_exploratory():
+        while not done:
+            img = ev1.render(mode='rgb_array')
+            cv2.imshow("asd", img)
+            cv2.waitKey(50)
+            policy.clean(1)
+            act = policy.sample_actions(torch.from_numpy(state).reshape((1, dims)))
+            state, _, done, _ = ev1.step(act[0].item())
 
 
 
