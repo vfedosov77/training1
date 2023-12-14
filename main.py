@@ -7,6 +7,8 @@ import multiprocessing
 from Policies.QPolicy import *
 from Policies.PolicyWithConfidence import PolicyWithConfidence
 from NnTools.BruteForce import BruteForce
+from NnTools.ProbabilitiesDistribution import ProbabilitiesDistribution
+
 
 num_envs = os.cpu_count()
 
@@ -69,7 +71,7 @@ def train(trainer: PolicyTrainer, steps_amount, callback):
 
     return sum(steps_counts) / len(steps_counts)
 
-def train_step(policy: PolicyWithConfidence, predictor: Predictor):
+def train_step(policy: PolicyWithConfidence, predictor: Predictor, probabilities: ProbabilitiesDistribution):
     global backup
 
     def on_step_by_env(prev_state, next_state, actions, done):
@@ -122,7 +124,7 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor):
             # trainer.policy = policy
             # policy.copy_state_from(predictor_policy)
 
-    return trainer.get_active_env_steps()
+    return trainer.get_active_env_steps(), trainer.get_episodes_done()
 
 
 if __name__ == '__main__':
@@ -137,10 +139,12 @@ if __name__ == '__main__':
     #print(f"State dimensions: {dims}. Actions: {actions}")
     layers = [64, 128, 64, actions]
     policy = QPolicy("policy", dims, layers)
+    probabilities = ProbabilitiesDistribution(dims, [1024, 256, 64, 10])
+
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
-    steps_count = train_step(policy, predictor)
-    print(f"Trained by simulated step count: {steps_count}")
+    steps_count, episodes_count = train_step(policy, predictor, probabilities)
+    print(f"Trained by simulated step count: {steps_count} of episodes {episodes_count}")
 
     ev1 = create_env('CartPole-v1')
     env_wrap = PreprocessEnv1Item(ev1)
