@@ -21,17 +21,27 @@ class PolicyTrainer:
             self.trainer.policy.activate_exploratory(self.policy_value)
             self.trainer.active = self.value
 
-    def __init__(self, policy: PolicyWithConfidence, brute_force: BruteForce):
+    def __init__(self, environment, policy: PolicyWithConfidence, brute_force: BruteForce):
         self.policy: PolicyWithConfidence = policy
         self.brute_force = brute_force
         self.state = None
         self.environment = None
-        self.steps_done = None
+        self.steps_count = None
+        self.steps_to_done = None
         self.use_alternatives = False
         self.done = None
         self.active = True
         self.env_steps = 0
         self.episodes_count = 0
+        self.environment = environment
+        self.reset()
+
+    def reset(self):
+        self.state = self.environment.reset()
+        self.steps_count = torch.full([self.state.shape[0], 1], 0.0)
+        self.steps_to_done = torch.full([self.state.shape[0], 1], 0.0)
+        self.done = torch.full([self.state.shape[0], 1], False)
+        self.environment = self.environment
 
     def is_active(self):
         return self.active
@@ -42,12 +52,6 @@ class PolicyTrainer:
     def activate_alternatives(self, use_alternatives):
         self.use_alternatives = use_alternatives
 
-    def set_environment(self, environment):
-        self.state = environment.reset()
-        self.steps_done = torch.full([self.state.shape[0], 1], 0.0)
-        self.done = torch.full([self.state.shape[0], 1], False)
-        self.environment = environment
-
     def step(self):
         actions = self.policy.sample_actions(self.state)
 
@@ -57,8 +61,9 @@ class PolicyTrainer:
 
         next_state, rewards, done, _ = self.environment.step(actions)
 
-        self.steps_done = (self.steps_done + 1.0) * ~done
-        self.episodes_count += len(torch.nonzero(done.squeeze(axis=1)))
+        self.steps_to_done = self.steps_to_done * ~done + (self.steps_count + 1.0) * done
+        self.steps_count = (self.steps_count + 1.0) * ~done
+
         #max_steps = max(max_steps, torch.max(steps_done).item())
 
         #if id % 50 == 0:
@@ -66,9 +71,10 @@ class PolicyTrainer:
         #    max_steps = 0
 
         if self.active:
-            well_done = self.steps_done > 450.0
+            well_done = self.steps_count > 450.0
             self.policy.set_step_reward(self.state, next_state, actions, rewards, done, well_done)
             self.env_steps += len(next_state)
+            self.episodes_count += len(torch.nonzero(done.squeeze(axis=1)))
 
         prev_state = self.state
         self.state = next_state
@@ -76,7 +82,7 @@ class PolicyTrainer:
         return prev_state, next_state, actions, done
 
     def get_steps_done(self):
-        return self.steps_done
+        return self.steps_to_done
 
     def get_episodes_done(self):
         return self.episodes_count

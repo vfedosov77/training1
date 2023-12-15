@@ -1,3 +1,5 @@
+import random
+
 from PolicyTrainer import PolicyTrainer
 from NnTools.Predictor import Predictor
 from utils import seed_everything
@@ -60,16 +62,16 @@ backup = None
 
 
 def train(trainer: PolicyTrainer, steps_amount, callback):
-    steps_counts = []
+    trainer.reset()
 
     for id in range(steps_amount):
         prev_state, next_state, actions, done = trainer.step()
-        steps_counts.append(trainer.get_steps_done().mean().item())
 
         if callback is not None:
             callback(prev_state, next_state, actions, done)
 
-    return sum(steps_counts) / len(steps_counts)
+    return trainer.get_steps_done().mean().item()
+
 
 def train_step(policy: PolicyWithConfidence, predictor: Predictor, probabilities: ProbabilitiesDistribution):
     global backup
@@ -80,26 +82,21 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor, probabilities
 
     policy.clean(num_envs)
 
-    trainer = PolicyTrainer(policy, BruteForce(policy, predictor, [0, 1]))
-
-    trainer.set_environment(parallel_env)
-
-    steps = 0
+    trainer = PolicyTrainer(parallel_env, policy, BruteForce(policy, predictor, [0, 1]))
 
     while True:
-        steps += 1
         trainer.activate_alternatives(predictor.is_ready())
 
         with trainer.suppress_training():
-            result = train(trainer, 400, None)
-            print(f"Env results: {result}")
+            result = train(trainer, 500, None)
+            print(f"Env results without the exploratory: {result}")
 
-            if result > 240:
-                print(f"Trained in steps {steps}")
+            if result > 450:
+                print(f"Training is finished")
                 break
 
-        result2 = train(trainer, 500, on_step_by_env)
-        print(f"Env results at the end: {result2}")
+        result2 = train(trainer, 600, on_step_by_env)
+        print(f"Env results during the training: {result2}")
 
         # if predictor.is_ready():
         #     trainer.state = default_state
@@ -139,8 +136,7 @@ if __name__ == '__main__':
     #print(f"State dimensions: {dims}. Actions: {actions}")
     layers = [64, 128, 64, actions]
     policy = QPolicy("policy", dims, layers)
-    probabilities = ProbabilitiesDistribution(dims, [1024, 256, 64, 10])
-
+    probabilities = ProbabilitiesDistribution(dims, [1024, 256, 64, 7])
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
     steps_count, episodes_count = train_step(policy, predictor, probabilities)
@@ -150,8 +146,7 @@ if __name__ == '__main__':
     env_wrap = PreprocessEnv1Item(ev1)
     done = False
 
-    trainer = PolicyTrainer(policy, BruteForce(policy, predictor, [0, 1]))
-    trainer.set_environment(env_wrap)
+    trainer = PolicyTrainer(env_wrap, policy, BruteForce(policy, predictor, [0, 1]))
     trainer.activate_alternatives(True)
     policy.clean(1)
 

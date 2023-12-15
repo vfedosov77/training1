@@ -1,0 +1,1 @@
+Extend the brute force search up to planning. If some plan's correctness is proved we should update the policy. Otherwise update the Predictor.
