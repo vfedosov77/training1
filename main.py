@@ -10,6 +10,7 @@ from Policies.QPolicy import *
 from Policies.PolicyWithConfidence import PolicyWithConfidence
 from NnTools.BruteForce import BruteForce
 from NnTools.ProbabilitiesDistribution import ProbabilitiesDistribution
+from Simplifier.train_simplifier import train_simplifier
 
 
 num_envs = os.cpu_count()
@@ -125,6 +126,10 @@ def train_step(policy: PolicyWithConfidence, predictor: Predictor, probabilities
 
 
 if __name__ == '__main__':
+    #assert torch.cuda.is_available()
+    device = torch.device("cuda") if torch.cuda.is_available() else None
+    train_simplifier(device)
+
     multiprocessing.freeze_support()
 
     env_fns = [lambda: create_env('CartPole-v1') for _ in range(num_envs)]
@@ -136,7 +141,7 @@ if __name__ == '__main__':
     #print(f"State dimensions: {dims}. Actions: {actions}")
     layers = [64, 128, 64, actions]
     policy = QPolicy("policy", dims, layers)
-    probabilities = ProbabilitiesDistribution(dims, [1024, 256, 64, 7])
+    probabilities = ProbabilitiesDistribution(dims, [128, 128, 64, 7])
     predictor = Predictor(actions, [1024, 256, 64, dims])
 
     steps_count, episodes_count = train_step(policy, predictor, probabilities)

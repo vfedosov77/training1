@@ -3,7 +3,7 @@ import torch
 from typing import *
 
 
-def create_nn_and_optimizer(input_size: int, layers_sizes: List, lr: float, add_softmax: bool = False, add_sigmoid: bool = False) -> \
+def create_nn_and_optimizer(input_size: int, layers_sizes: List, lr: float = 0.001, add_softmax: bool = False, add_sigmoid: bool = False) -> \
         Tuple[torch.nn.Sequential, torch.optim.Optimizer]:
     layers = OrderedDict()
 

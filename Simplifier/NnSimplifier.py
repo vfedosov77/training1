@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 import torchvision.models.vision_transformer as vit
+from Simplifier.Constants import *
 
 
-class NnSimplifier:
-    def __init__(self, device, dropout: float = 0.0, attention_dropout: float = 0.0):
+class NnSimplifier(nn.Module):
+    def __init__(self, sequence_size: int, device, dropout: float = 0.0, attention_dropout: float = 0.0):
+        nn.Module.__init__(self)
         self.encoder = vit.Encoder(
-            MAX_NEURONS_NUM,
+            sequence_size,
             ENCODER_NUM_LAYERS,
             NUM_HEADS,
             HIDDEN_DIM,
@@ -15,9 +17,18 @@ class NnSimplifier:
             attention_dropout
         )
 
-        self.encoder.to(device)
-        self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM).cuda())
+        self.softmax = torch.nn.Softmax(dim=-1)
 
-    def train(self, nn: nn.Module, preprocessing_kind: torch.Tensor):
+        if device:
+            self.encoder.to(device)
+            self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM).cuda())
+        else:
+            self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM))
+
+    def forward(self, input_data: torch.Tensor):
+        out = self.encoder(input_data)
+        out = out[:,1,:].squeeze(dim=1)
+        return self.softmax(out)
+
 
 

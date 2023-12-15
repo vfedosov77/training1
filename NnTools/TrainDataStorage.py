@@ -1,3 +1,4 @@
+import sys, os
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -6,7 +7,7 @@ class TrainDataStorage:
     def __init__(self):
         self.inputs: torch.Tensor = None
         self.output: torch.Tensor = None
-        self.dataset = None
+        self.dataset: TensorDataset = None
 
         self.input2output = dict()
 
@@ -31,3 +32,13 @@ class TrainDataStorage:
 
     def size(self):
         return len(self.inputs)
+
+    def save(self, path: str):
+        torch.save(self.dataset, path)
+
+    def load(self, path: str):
+        if not os.path.exists(path):
+            return False
+
+        self.dataset = torch.load(path)
+        return True

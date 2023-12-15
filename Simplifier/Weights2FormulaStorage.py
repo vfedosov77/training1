@@ -1,7 +1,8 @@
 from NnTools.TrainDataStorage import TrainDataStorage
+from Simplifier.Constants import *
+from Simplifier.utils import *
 import torch
 from torch import nn
-from Constants import *
 from typing import List
 
 
@@ -9,29 +10,34 @@ class Weights2FormulaStorage(TrainDataStorage):
     def __init__(self):
         TrainDataStorage.__init__(self)
 
-    def add_model(self, module: nn.Sequential, inputs_formulas: List[int]):
-        input = None
+    def add_model_with_one_formula(self, module: nn.Sequential, input_id: int, input_formula: int):
+        input_data = None
 
-        for layer_id, module in enumerate(module):
-            if isinstance(module, nn.Linear):
-                weights: torch.Tensor = module.weight.data
-                biases: torch.Tensor = module.bias.data
-                neurons_count, inputs_count = weights.shape
+        for layer_data in get_layers_vectors(module):
+            if input_data is None:
+                input_data = layer_data[input_id].reshape((1, HIDDEN_DIM))
+            else:
+                input_data = torch.cat((input_data, layer_data), dim=0)
 
-                if inputs_count < WEIGHT_DIM:
-                    weights = weights.cat(weights, torch.zeros((neurons_count, WEIGHT_DIM - inputs_count)))
+        output_data = torch.zeros((HIDDEN_DIM, 1))
+        output_data[input_formula] = 1.0
 
-                indices = torch.Tensor(((float(layer_id) / MAX_LAYERS, float(n) / MAX_NEURONS_NUM, biases[n].item())
-                                        for n in range(neurons_count)))
+        self.add(input_data, output_data)
 
-                layer_data = torch.cat((indices, weights), dim=1)
+    def add_model(self, input_size: int, module: nn.Sequential, input_formulas: List[int]):
+        layers = list(get_layers_vectors(module))
+        first_layer = layers[0]
 
-                if input is None:
-                    input = layer_data
-                else:
-                    input = torch.cat((input, layer_data), dim=0)
+        for input_id in range(input_size):
+            input_data = first_layer[input_id].reshape((1, HIDDEN_DIM))
+            all_tensors = [input_data]
+            all_tensors.extend(layers[1:])
+            input_data = torch.cat(all_tensors, dim=0)
 
-        output = torch.Tensor(((formula for id, formula in enumerate(inputs_formulas)))
+            output_data = torch.zeros((1, HIDDEN_DIM))
+            output_data[0][input_formulas[input_id]] = 1.0
+
+            self.add(input_data.unsqueeze(0), output_data)
 
 
 
