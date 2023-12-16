@@ -12,7 +12,7 @@ from common.utils import *
 from functools import partial
 
 APPROX_BATH_SIZE = 128
-TRANSFORMER_BATCH_SIZE = 64
+TRANSFORMER_BATCH_SIZE = 32
 INPUT_SIZE = 4
 NN_LAYERS = (125, 125, 32, 10)
 DB_FILE_PATH = "/tmp/simplifier_db.pth" if os.path.exists("/tmp") else "C:\\Users\\vfedo\\OneDrive\\Documents\\simplifier_db.pth"
@@ -98,23 +98,28 @@ def train_simplifier(device):
     if device:
         storage.to_cuda()
 
-    storage = fill_random_storage(device)
+    # storage = fill_random_storage(device)
 
     loss_func = torch.nn.CrossEntropyLoss()
     one_record = next(iter(storage.get_batches(1)))[0]
     simplifier = NnSimplifier(one_record.shape[1], device)
-    optimizer = torch.optim.Adam(simplifier.parameters(), lr=0.0007, betas=(0.5, 0.9))
+    optimizer = torch.optim.Adam(simplifier.parameters(), lr=0.0000001)#, betas=(0.5, 0.9))
     diff = torch.nn.MSELoss()
 
     for i in range(1000):
         for input_batch, exp_output_batch in storage.get_batches(TRANSFORMER_BATCH_SIZE):
-            for i in range(199):
-                simplifier.zero_grad()
-                out = simplifier(input_batch)
-                loss = loss_func(out, exp_output_batch.detach())
-                loss.backward()
-                optimizer.step()
-                print("Simplifier loss: " + str(diff(out, exp_output_batch)))
+            #mean = torch.mean(input_batch, axis=2)
+            #std = torch.std(input_batch, axis=2)
+
+            # Normalize training data
+            #input_normalized = (input_batch - mean) / std
+
+            simplifier.zero_grad()
+            out = simplifier(input_batch)
+            loss = loss_func(out, exp_output_batch.detach())
+            loss.backward()
+            optimizer.step()
+            print("Simplifier loss: " + str(diff(out, exp_output_batch)))
 
 
 
