@@ -25,12 +25,13 @@ class Weights2FormulaStorage(TrainDataStorage):
         self.add(input_data, output_data)
 
     def add_model(self, input_size: int, module: nn.Sequential, input_formulas: List[int]):
-        layers = list(get_layers_vectors(module))
+        layers = list(get_layers_vectors_cuda(module))
         first_layer = layers[0]
 
         for input_id in range(input_size):
-            input_data = first_layer[input_id].reshape((1, HIDDEN_DIM))
-            all_tensors = [input_data]
+            first_layer_neuron = first_layer[input_id].reshape((1, HIDDEN_DIM))
+            first_layer_neuron[1] = 0.0
+            all_tensors = [first_layer_neuron]
             all_tensors.extend(layers[1:])
             input_data = torch.cat(all_tensors, dim=0)
 

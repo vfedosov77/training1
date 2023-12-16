@@ -42,3 +42,6 @@ class TrainDataStorage:
 
         self.dataset = torch.load(path)
         return True
+
+    def to_cuda(self):
+        self.dataset.tensors = [tensor.cuda() for tensor in self.dataset.tensors]

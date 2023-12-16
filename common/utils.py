@@ -3,12 +3,19 @@ import torch
 from typing import *
 
 
-def create_nn_and_optimizer(input_size: int, layers_sizes: List, lr: float = 0.001, add_softmax: bool = False, add_sigmoid: bool = False) -> \
+def create_nn_and_optimizer(input_size: int,
+                            layers_sizes: List,
+                            lr: float = 0.001,
+                            add_softmax: bool = False,
+                            add_sigmoid: bool = False,
+                            device=None) -> \
         Tuple[torch.nn.Sequential, torch.optim.Optimizer]:
     layers = OrderedDict()
 
     for id, size in enumerate(layers_sizes):
-        layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size)
+        layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size) if not device \
+            else torch.nn.Linear(input_size, size, device=device)
+
         input_size = size
 
         if id != len(layers_sizes) - 1:
@@ -24,12 +31,14 @@ def create_nn_and_optimizer(input_size: int, layers_sizes: List, lr: float = 0.0
     return nn, optimizer
 
 
-def create_nn(input_size: int, layers_sizes: List, add_softmax: bool) -> \
+def create_nn(input_size: int, layers_sizes: List, add_softmax: bool, device) -> \
         Tuple[torch.nn.Sequential, torch.optim.Optimizer]:
     layers = OrderedDict()
 
     for id, size in enumerate(layers_sizes):
-        layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size)
+        layers["Layer_" + str(id)] = torch.nn.Linear(input_size, size) if not device \
+            else torch.nn.Linear(input_size, size, device=device)
+
         input_size = size
 
         if id != len(layers_sizes) - 1:
