@@ -15,7 +15,9 @@ APPROX_BATH_SIZE = 128
 TRANSFORMER_BATCH_SIZE = 32
 INPUT_SIZE = 4
 NN_LAYERS = (125, 125, 32, 10)
+SIMPLIFIER_SEQUENCE = sum(NN_LAYERS[1:]) + 2
 DB_FILE_PATH = "/tmp/simplifier_db.pth" if os.path.exists("/tmp") else "C:\\Users\\vfedo\\OneDrive\\Documents\\simplifier_db.pth"
+SIMPLIFIER_FILE_PATH = "/tmp/simplifier.pth" if os.path.exists("/tmp") else "C:\\Users\\vfedo\\OneDrive\\Documents\\simplifier.pth"
 
 formula2lambda = {
     FORMULA_EMPTY: (lambda x: x),
@@ -73,7 +75,7 @@ def fill_random_storage(device):
     storage = Weights2FormulaStorage()
 
     for i in range(100):
-        input =  torch.rand([1, 168, 128])
+        input =  torch.rand([1, 169, 128])
         output = torch.zeros((1, 128))
         output[0][random.randint(0, 4)] = 1.0
         storage.add(input, output)
@@ -84,14 +86,45 @@ def fill_random_storage(device):
     return storage
 
 
+def test(simplifier: NnSimplifier, device):
+    storage = Weights2FormulaStorage()
+    score = 0
+
+    for i in range(10):
+        formulas = [random.randint(FORMULA_EMPTY, FORMULA_MAX) for _ in range(INPUT_SIZE)]
+        network = train_nn_with_formulas(formulas, device)
+        storage.add_model(INPUT_SIZE, network, formulas)
+
+    # storage.load(DB_FILE_PATH)
+
+    for input, output in storage:
+        res = simplifier(input.unsqueeze(0)).squeeze()
+        id = torch.argmax(res)
+        id2 = torch.argmax(output)
+
+        if id == id2:
+            score += 1
+
+    print("Simplifier test result: " + str(score) + " of " + str(storage.size()))
+
+
 def train_simplifier(device):
+    if os.path.exists(SIMPLIFIER_FILE_PATH):
+        simplifier = torch.load(SIMPLIFIER_FILE_PATH)
+        test(simplifier, device)
+        return simplifier
+
     storage = Weights2FormulaStorage()
 
     if not storage.load(DB_FILE_PATH):
-        for i in range(500):
+        for i in range(3000):
             formulas = [random.randint(FORMULA_EMPTY, FORMULA_MAX) for _ in range(INPUT_SIZE)]
             network = train_nn_with_formulas(formulas, device)
             storage.add_model(INPUT_SIZE, network, formulas)
+
+            if i % 100 == 0:
+                print(f"Added {i} models into DB. Saved")
+                storage.save(DB_FILE_PATH)
 
         storage.save(DB_FILE_PATH)
 
@@ -100,26 +133,39 @@ def train_simplifier(device):
 
     # storage = fill_random_storage(device)
 
-    loss_func = torch.nn.CrossEntropyLoss()
+    loss_func = torch.nn.MSELoss() #torch.nn.CrossEntropyLoss()
     one_record = next(iter(storage.get_batches(1)))[0]
-    simplifier = NnSimplifier(one_record.shape[1], device)
-    optimizer = torch.optim.Adam(simplifier.parameters(), lr=0.0000001)#, betas=(0.5, 0.9))
+
+    # nn, opt = create_nn_and_optimizer(169*128, [100, 100, 10, 6], add_softmax=True, device=device, lr=0.001)
+
+    simplifier = NnSimplifier(SIMPLIFIER_SEQUENCE, device)
+    optimizer = torch.optim.Adam(simplifier.parameters(), lr=0.0003, betas=(0.5, 0.9))
     diff = torch.nn.MSELoss()
 
-    for i in range(1000):
+    for i in range(3000):
         for input_batch, exp_output_batch in storage.get_batches(TRANSFORMER_BATCH_SIZE):
-            #mean = torch.mean(input_batch, axis=2)
-            #std = torch.std(input_batch, axis=2)
-
-            # Normalize training data
-            #input_normalized = (input_batch - mean) / std
-
             simplifier.zero_grad()
             out = simplifier(input_batch)
+            exp_output_batch = exp_output_batch[:, 0:6]
+            out = out[:, 0:6]
             loss = loss_func(out, exp_output_batch.detach())
             loss.backward()
             optimizer.step()
+
+            # nn.zero_grad()
+            # exp_output_batch = exp_output_batch[:, 0:6]
+            # out = nn(input_batch.reshape((len(input_batch), -1)))
+            # loss = loss_func(out, exp_output_batch.detach())
+            # loss.backward()
+            # opt.step()
+
             print("Simplifier loss: " + str(diff(out, exp_output_batch)))
+
+        if i % 10 == 0:
+            print("Saved")
+            torch.save(simplifier, SIMPLIFIER_FILE_PATH)
+
+    return simplifier
 
 
 

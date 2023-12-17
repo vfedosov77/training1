@@ -34,3 +34,18 @@ def get_layers_vectors_cuda(module: nn.Sequential):
 
             layer_data = torch.cat((indices, weights), dim=1)
             yield layer_data
+
+
+def get_first_layer_input_info(first_layer: torch.Tensor, input_id: int, layer_size: int):
+    first_layer_weights = [0.0, 0.0, 0.0]
+    first_layer_weights.extend(first_layer[id][input_id + WEIGHTS_START_ID].item() for id in range(layer_size))
+    first_layer_weights.extend(0.0 for _ in range(HIDDEN_DIM - len(first_layer_weights)))
+    first_layer_biases = [0.0, 1.0, 0.0]
+    first_layer_biases.extend(first_layer[id][BIAS_ID].item() for id in range(layer_size))
+    first_layer_biases.extend(0.0 for _ in range(HIDDEN_DIM - len(first_layer_biases)))
+    return torch.stack((torch.Tensor(first_layer_weights), torch.Tensor(first_layer_biases)))
+
+
+
+
+

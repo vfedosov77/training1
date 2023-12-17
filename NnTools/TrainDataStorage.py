@@ -24,6 +24,13 @@ class TrainDataStorage:
     def get_batches(self, size) -> "iterator":
         return DataLoader(self.dataset, batch_size=size, shuffle=True)
 
+    def __iter__(self):
+        input = self.dataset.tensors[0]
+        output = self.dataset.tensors[1]
+
+        for i in range(len(input)):
+            yield input[i], output[i]
+
     def get_all(self):
         return self.inputs, self.output
 
