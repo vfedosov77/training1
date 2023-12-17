@@ -90,7 +90,7 @@ def test(simplifier: NnSimplifier, device):
     storage = Weights2FormulaStorage()
     score = 0
 
-    for i in range(10):
+    for i in range(2):
         formulas = [random.randint(FORMULA_EMPTY, FORMULA_MAX) for _ in range(INPUT_SIZE)]
         network = train_nn_with_formulas(formulas, device)
         storage.add_model(INPUT_SIZE, network, formulas)
@@ -133,12 +133,12 @@ def train_simplifier(device):
 
     # storage = fill_random_storage(device)
 
-    loss_func = torch.nn.MSELoss() #torch.nn.CrossEntropyLoss()
+    loss_func = torch.nn.CrossEntropyLoss() #torch.nn.MSELoss() #torch.nn.CrossEntropyLoss()
     one_record = next(iter(storage.get_batches(1)))[0]
 
     # nn, opt = create_nn_and_optimizer(169*128, [100, 100, 10, 6], add_softmax=True, device=device, lr=0.001)
 
-    simplifier = NnSimplifier(SIMPLIFIER_SEQUENCE, device)
+    simplifier = NnSimplifier(SIMPLIFIER_SEQUENCE, FORMULA_MAX + 1, device)
     optimizer = torch.optim.Adam(simplifier.parameters(), lr=0.0003, betas=(0.5, 0.9))
     diff = torch.nn.MSELoss()
 
@@ -146,8 +146,7 @@ def train_simplifier(device):
         for input_batch, exp_output_batch in storage.get_batches(TRANSFORMER_BATCH_SIZE):
             simplifier.zero_grad()
             out = simplifier(input_batch)
-            exp_output_batch = exp_output_batch[:, 0:6]
-            out = out[:, 0:6]
+            exp_output_batch = exp_output_batch[:, 0:5]
             loss = loss_func(out, exp_output_batch.detach())
             loss.backward()
             optimizer.step()

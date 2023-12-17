@@ -5,7 +5,12 @@ from Simplifier.Constants import *
 
 
 class NnSimplifier(nn.Module):
-    def __init__(self, sequence_size: int, device, dropout: float = 0.0, attention_dropout: float = 0.0):
+    def __init__(self,
+                 sequence_size: int,
+                 output_dim: int,
+                 device,
+                 dropout: float = 0.0,
+                 attention_dropout: float = 0.0):
         nn.Module.__init__(self)
         self.encoder = vit.Encoder(
             sequence_size,
@@ -17,17 +22,20 @@ class NnSimplifier(nn.Module):
             attention_dropout
         )
 
+        self.linear = nn.Linear(HIDDEN_DIM, output_dim)
         self.softmax = torch.nn.Softmax(dim=-1)
 
         if device:
             self.encoder.to(device)
+            self.linear.to(device)
             self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM).cuda())
         else:
             self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM))
 
     def forward(self, input_data: torch.Tensor):
         out = self.encoder(input_data)
-        out = out[:,1,:].squeeze(dim=1)
+        out = out[:,0,:].squeeze(dim=1)
+        out = self.linear(out)
         return self.softmax(out)
 
 
