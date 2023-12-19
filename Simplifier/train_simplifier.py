@@ -16,8 +16,14 @@ TRANSFORMER_BATCH_SIZE = 32
 INPUT_SIZE = 4
 NN_LAYERS = (125, 125, 32, 10)
 SIMPLIFIER_SEQUENCE = sum(NN_LAYERS[1:]) + 2
+
 DB_FILE_PATH = "/tmp/simplifier_db.pth" if os.path.exists("/tmp") else "C:\\Users\\vfedo\\OneDrive\\Documents\\simplifier_db.pth"
 SIMPLIFIER_FILE_PATH = "/tmp/simplifier.pth" if os.path.exists("/tmp") else "C:\\Users\\vfedo\\OneDrive\\Documents\\simplifier.pth"
+RESOURCES_FOLDER = os.environ['RESOURCES_PATH']
+
+if RESOURCES_FOLDER is not None:
+    DB_FILE_PATH = os.path.join(RESOURCES_FOLDER, "simplifier_db.pth")
+    SIMPLIFIER_FILE_PATH = os.path.join(RESOURCES_FOLDER, "simplifier.pth")
 
 formula2lambda = {
     FORMULA_EMPTY: (lambda x: x),
@@ -167,6 +173,8 @@ def train_simplifier(device):
     return simplifier
 
 
+if __name__ == '__main__':
+    train_simplifier(torch.device("cuda") if torch.cuda.is_available() else None)
 
 
 
