@@ -173,8 +173,9 @@ def train_simplifier(device):
     return simplifier
 
 
-if __name__ == '__main__':
+def local_main():
     train_simplifier(torch.device("cuda") if torch.cuda.is_available() else None)
+
 
 
 
