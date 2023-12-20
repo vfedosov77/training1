@@ -12,7 +12,7 @@ from common.utils import *
 from functools import partial
 
 APPROX_BATH_SIZE = 128
-TRANSFORMER_BATCH_SIZE = 32
+TRANSFORMER_BATCH_SIZE = 128
 INPUT_SIZE = 4
 NN_LAYERS = (125, 125, 32, 10)
 SIMPLIFIER_SEQUENCE = sum(NN_LAYERS[1:]) + 2
@@ -174,8 +174,10 @@ def train_simplifier(device):
 
     optimizer = torch.optim.Adam(simplifier.parameters(), lr=lr, betas=(0.5, 0.9))
     diff = torch.nn.MSELoss()
-
+    j = 0
     for i in range(3000):
+        test_by_db(simplifier, test_storage, 100)
+
         for input_batch, exp_output_batch in storage.get_batches(TRANSFORMER_BATCH_SIZE):
             simplifier.zero_grad()
             out = simplifier(input_batch)
@@ -191,13 +193,14 @@ def train_simplifier(device):
             # loss.backward()
             # opt.step()
 
-            print("Simplifier loss: " + str(diff(out, exp_output_batch)))
+            if j % 30 == 0:
+                print("Simplifier loss: " + str(diff(out, exp_output_batch)))
+
+            j += 1
 
         if i % 10 == 9:
             print("Saved")
             torch.save(simplifier, SIMPLIFIER_FILE_PATH)
-
-        test_by_db(simplifier, test_storage, 100)
 
     return simplifier
 

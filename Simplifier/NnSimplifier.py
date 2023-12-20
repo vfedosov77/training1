@@ -9,8 +9,8 @@ class NnSimplifier(nn.Module):
                  sequence_size: int,
                  output_dim: int,
                  device,
-                 dropout: float = 0.0,
-                 attention_dropout: float = 0.0):
+                 dropout: float = 0.1,
+                 attention_dropout: float = 0.1):
         nn.Module.__init__(self)
 
         self.linear = nn.Linear(HIDDEN_DIM, output_dim)
