@@ -1,6 +1,6 @@
 import sys, os
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 
 class TrainDataStorage:
@@ -38,7 +38,7 @@ class TrainDataStorage:
         return self.inputs is None
 
     def size(self):
-        return len(self.inputs)
+        return len(self.dataset.tensors[0])
 
     def save(self, path: str):
         torch.save(self.dataset, path)
@@ -52,3 +52,12 @@ class TrainDataStorage:
 
     def to_cuda(self):
         self.dataset.tensors = [tensor.cuda() for tensor in self.dataset.tensors]
+
+    def split(self, count_for_second):
+        subset1, subset2 = random_split(self.dataset, (self.size() - count_for_second, count_for_second))
+
+        new_storage = TrainDataStorage()
+        new_storage.dataset = TensorDataset()
+        new_storage.dataset.tensors = subset2[:]
+        self.dataset.tensors = subset1[:]
+        return new_storage

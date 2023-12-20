@@ -11,6 +11,8 @@ class NnSimplifier(nn.Module):
                  device,
                  dropout: float = 0.0,
                  attention_dropout: float = 0.0):
+        nn.Module.__init__(self)
+
         self.linear = nn.Linear(HIDDEN_DIM, output_dim)
         self.softmax = torch.nn.Softmax(dim=-1)
 
@@ -23,15 +25,11 @@ class NnSimplifier(nn.Module):
             dropout,
             attention_dropout
         )
-
-        nn.Module.__init__(self)
+        self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM))
 
         if device:
-            self.encoder.to(device)
-            self.linear.to(device)
-            self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM).cuda())
-        else:
-            self.class_token = nn.Parameter(torch.zeros(1, 1, HIDDEN_DIM))
+            self.to(device)
+            self.class_token = self.class_token.cuda()
 
     def forward(self, input_data: torch.Tensor):
         out = self.encoder(input_data)
