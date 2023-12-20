@@ -27,12 +27,11 @@ class Weights2FormulaStorage(TrainDataStorage):
     def add_model(self, input_size: int, module: nn.Sequential, input_formulas: List[int]):
         layers = list(get_layers_vectors_cuda(module))
         first_layer = layers[0]
-        first_layer_size = next(iter(module)).weight.data.shape[0]
 
         for input_id in range(input_size):
-            first_layer_input = get_first_layer_input_info(first_layer, input_id, first_layer_size).cuda()
-            all_tensors = [first_layer_input]
-            all_tensors.extend(layers[1:])
+            input_id_layer = torch.full((1, HIDDEN_DIM), float(input_id)/MAX_NEURONS_NUM)
+            all_tensors = [input_id_layer]
+            all_tensors.extend(layers)
             input_data = torch.cat(all_tensors, dim=0)
 
             output_data = torch.zeros((1, HIDDEN_DIM))
