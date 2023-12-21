@@ -15,7 +15,7 @@ APPROX_BATH_SIZE = 128
 TRANSFORMER_BATCH_SIZE = 128
 INPUT_SIZE = 4
 NN_LAYERS = (125, 125, 32, 10)
-SIMPLIFIER_SEQUENCE = sum(NN_LAYERS[1:]) + 2
+SIMPLIFIER_SEQUENCE = sum(NN_LAYERS) + 1
 
 IS_LINUX = os.path.exists("/tmp")
 
@@ -138,7 +138,7 @@ def train_simplifier(device):
 
     if os.path.exists(SIMPLIFIER_FILE_PATH):
         simplifier = torch.load(SIMPLIFIER_FILE_PATH)
-        lr = 0.00005
+        lr = 0.00001
         test_storage = create_test_storage(device)
         #test_by_db(simplifier, test_storage, storage.size())
         #return simplifier
@@ -165,7 +165,7 @@ def train_simplifier(device):
     # storage = fill_random_storage(device)
 
     loss_func = torch.nn.MSELoss() #torch.nn.CrossEntropyLoss()
-    one_record = next(iter(storage.get_batches(1)))[0]
+    #one_record = next(iter(storage.get_batches(1)))[0]
 
     # nn, opt = create_nn_and_optimizer(169*128, [100, 100, 10, 6], add_softmax=True, device=device, lr=0.001)
 

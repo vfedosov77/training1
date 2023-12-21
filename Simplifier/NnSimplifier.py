@@ -17,7 +17,7 @@ class NnSimplifier(nn.Module):
         self.softmax = torch.nn.Softmax(dim=-1)
 
         self.encoder = vit.Encoder(
-            sequence_size,
+            sequence_size + 1,
             ENCODER_NUM_LAYERS,
             NUM_HEADS,
             HIDDEN_DIM,
@@ -32,6 +32,9 @@ class NnSimplifier(nn.Module):
             self.class_token = self.class_token.cuda()
 
     def forward(self, input_data: torch.Tensor):
+        n = len(input_data)
+        batch_class_token = self.class_token.expand(n, -1, -1)
+        input_data = torch.cat((batch_class_token, input_data), dim=1)
         out = self.encoder(input_data)
         out = out[:, 0, :].squeeze(dim=1)
         linear = self.linear

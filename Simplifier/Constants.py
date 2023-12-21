@@ -1,5 +1,5 @@
 ENCODER_NUM_LAYERS = 8
-HIDDEN_DIM = 128 # LayerId, NeuronId, Bias, Weights - up to 257
+HIDDEN_DIM = 128 # LayerId, NeuronId, Bias, Weights - up to 125
 BIAS_ID = 2
 WEIGHTS_START_ID = 3
 WEIGHT_DIM = HIDDEN_DIM - WEIGHTS_START_ID
