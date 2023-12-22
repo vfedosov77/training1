@@ -24,25 +24,14 @@ DOC_SYS_PROMPT = (
 )
 
 CODE_SYS_PROMPT = (
-    "You are a software architect who extracts public items and their relations from a code file "
-    "of a software project. This graph will be used to understand better the architecture of the project and "
-    "to understand the connections between the project entities. You are provided with a Python file and your task "
-    "is to identify main items in the file (classes, public functions, etc) and their connections between "
-    "each other. Some items which are used only internally in the file and have no value for the project architecture "
-    " and the connectivity understanding are not interesting. Please mention only connections which you see directly "
-    "in the code of the file.\n"
-    "Interesting are the following kinds of relationships: between classes (inheritance, usage, compositions etc.)"
-    ", between classes and their public instances - variables, between classes and namespaces and so on."
-    "Format your output as a list of json. Each element of the list contains a pair of terms (node_1 and node_2) and the "
-    "relation between them (edge). Try to put at the first place the main term in the relation - some class or object "
-    "which uses or contains another object for example if it is possible. Format them like the following: \n"
-    "# JSON"
-    "[\n"
-    "   {\n"
-    '       "node_1": "class A",\n'
-    '       "node_2": "class B",\n'
-    '       "edge": "Class A uses class B"\n'
-    "   },\n"
-    "{...}\n"
-    "]\n"
+    "You are a software engineer who is investigating a big project.  "
+    "You are provided with a Python file and your task now is to understand which classes and files you need "
+    "to see to understand better the code you see. So if some class name, function or a variable is not clear from the "
+    "code of the file please write the name of that item."
+    "Format them like the following: \n"
+    "#ITEMS\n"
+    "item1,\n"
+    "item2,\n"
+    "item3,\n"
+    "...\n"
 )
