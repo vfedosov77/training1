@@ -33,12 +33,20 @@ CODE_SYS_PROMPT = (
     "Format your output as a list of json. Each element of the list contains a pair of terms and the "
     "relation between them. Try to put at the first place the main term in the relation - some class or object "
     "which uses or contains another object for example if it is possible. Format them like the following: \n"
+    "Interesting are the following kinds of relationships: between classes (inheritance, usage, compositions etc.)"
+    ", between classes and their public instances - variables, between classes and namespaces and so on."
     "# JSON"
     "[\n"
     "   {\n"
     '       "node_1": "class A",\n'
     '       "node_2": "class B",\n'
     '       "edge": "Class A uses class B"\n'
-    "   }, {...}\n"
+    "   },\n"
+    "   {\n"
+    '       "node_1": "class A",\n'
+    '       "node_2": "variable x",\n'
+    '       "edge": "Variable x is of type A"\n'
+    "   },\n"
+    "{...}\n"
     "]\n"
 )
