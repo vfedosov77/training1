@@ -28,10 +28,20 @@ You are provided with a Python file and your task now is to understand which cla
 So if some class name, function or a variable is not clear from the code of the file please write the file where it is declared if it is clear from the code or the name of that class or fuction or variable. 
 So only the name of thefile is required or the name of teh item - no further info.
 Format them like the following: 
-#ITEMS
-item1,
-item2,
-item3,
+#FILES
+file1,
+file2,
+...
+#CLASSES
+class1,
+class2,
+...
+#OTHER
+variable_name,
+enumeration_name,
+concept_name,
+service_name,
+db_name,
 ...
 Here is the file:
 """
