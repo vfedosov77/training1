@@ -71,7 +71,7 @@ class KnowlegeGraph:
                     self.edges_info[key] = info
 
     @staticmethod
-    def _get_max_answer_tokens_count(self, file_size):
+    def _get_max_answer_tokens_count(file_size):
         return file_size // 10
 
     def _process_ontology(self, text):
