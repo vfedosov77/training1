@@ -46,7 +46,7 @@ class MistralAiCore:
 
     def get_response(self, sys_prompt: str, user_prompt: str, max_answer_tokens) -> str:
         prompt = self._create_message(sys_prompt, user_prompt)
-        print("Prompt: " + prompt)
+        #print("Prompt: " + prompt)
 
         sequences = self.pipe(
             prompt,
