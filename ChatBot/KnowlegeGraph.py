@@ -1,4 +1,4 @@
-from Promts import *
+from ChatBot.Promts import *
 
 from dataclasses import dataclass
 import networkx as nx
@@ -36,6 +36,7 @@ class KnowlegeGraph:
         for root, dirs, files in os.walk(path):
             for file in files:
                 file_path = os.path.join(root, file)
+                print(file_path)
                 self._process_file(file_path)
 
         self._create_graph()
@@ -78,10 +79,10 @@ class KnowlegeGraph:
             print("Wrong response: " + response)
 
     def _process_file(self, path):
-        suffix = pl.Path(path).suffix.lower()
+        suffix = pl.Path(path).suffix.lower()[1:]
         is_code = suffix in self.code_suffices
         is_doc = suffix in self.doc_suffices
-
+        print(suffix)
         if not is_code and not is_doc:
             return
 

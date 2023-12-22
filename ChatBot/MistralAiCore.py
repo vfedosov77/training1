@@ -51,16 +51,19 @@ class MistralAiCore:
         sequences = self.pipe(
             prompt,
             do_sample=True,
-            max_new_tokens=100,
-            temperature=0.7,
-            top_k=50,
-            top_p=0.95,
+            max_new_tokens=10000,
+            temperature=0.3,
+            top_k=20,
+            top_p=0.8,
             num_return_sequences=1,
         )
         response = sequences[0]['generated_text']
-        print("Response: " + response)
+        print("Response: " + str(response))
+        exit(0)
         return response
 
     @staticmethod
     def _create_message(sys_prompt: str, user_prompt: str):
-        return INPUT_TEXT_FORMAT.format(sys_prompt, user_prompt)
+        #return INPUT_TEXT_FORMAT.format(sys_prompt, user_prompt)
+        return sys_prompt + "\n Here is the file:\n" + user_prompt
+
