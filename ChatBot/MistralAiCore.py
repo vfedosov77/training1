@@ -18,16 +18,14 @@ INPUT_TEXT_FORMAT = SYS_FORMAT + USER_FORMAT + ASSIST_FORMAT
 class MistralAiCore:
     def __init__(self):
         bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
+            load_in_8bit=True
         )
 
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=RESOURCES_FOLDER)
         self.model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
             cache_dir=RESOURCES_FOLDER,
-            load_in_4bit=True,
+            load_in_8bit=True,
             quantization_config=bnb_config,
             torch_dtype=torch.bfloat16,
             device_map="auto",
