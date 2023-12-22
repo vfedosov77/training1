@@ -24,7 +24,7 @@ DOC_SYS_PROMPT = (
 )
 
 CODE_SYS_PROMPT = (
-    "You are a network graph maker who extracts public items and their relations from a code file "
+    "You are a software architect who extracts public items and their relations from a code file "
     "of a software project. This graph will be used to understand better the architecture of the project and "
     "to understand the connections between the project entities. You are provided with a file and your task is to "
     "identify main items in the file (classes, public functions, etc) and their connections between "
@@ -32,8 +32,8 @@ CODE_SYS_PROMPT = (
     " and the connectivity understanding are not interesting. \n"
     "Interesting are the following kinds of relationships: between classes (inheritance, usage, compositions etc.)"
     ", between classes and their public instances - variables, between classes and namespaces and so on."
-    "Format your output as a list of json. Each element of the list contains a pair of terms and the "
-    "relation between them. Try to put at the first place the main term in the relation - some class or object "
+    "Format your output as a list of json. Each element of the list contains a pair of terms (node_1 and node_2) and the "
+    "relation between them (edge). Try to put at the first place the main term in the relation - some class or object "
     "which uses or contains another object for example if it is possible. Format them like the following: \n"
     "# JSON"
     "[\n"
@@ -41,11 +41,6 @@ CODE_SYS_PROMPT = (
     '       "node_1": "class A",\n'
     '       "node_2": "class B",\n'
     '       "edge": "Class A uses class B"\n'
-    "   },\n"
-    "   {\n"
-    '       "node_1": "class A",\n'
-    '       "node_2": "variable x",\n'
-    '       "edge": "Variable x is of type A"\n'
     "   },\n"
     "{...}\n"
     "]\n"
