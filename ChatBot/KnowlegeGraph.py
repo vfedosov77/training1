@@ -72,7 +72,7 @@ class KnowlegeGraph:
 
     @staticmethod
     def _get_max_answer_tokens_count(self, file_size):
-        return file_size // 3
+        return file_size // 10
 
     def _process_ontology(self, text):
         response = self.ai_core.get_response(CODE_SYS_PROMPT, text, self._get_max_answer_tokens_count(len(text)))
