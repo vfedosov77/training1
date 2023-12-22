@@ -70,8 +70,12 @@ class KnowlegeGraph:
                     info = EdgeInfo(node1, node2, {relation}, 1)
                     self.edges_info[key] = info
 
+    @staticmethod
+    def _get_max_answer_tokens_count(self, file_size):
+        return file_size // 3
+
     def _process_ontology(self, text):
-        response = self.ai_core.get_response(CODE_SYS_PROMPT, text)
+        response = self.ai_core.get_response(CODE_SYS_PROMPT, text, self._get_max_answer_tokens_count(len(text)))
         try:
             items = json.loads(response)
             self._add_ontology_items(items)
@@ -88,7 +92,7 @@ class KnowlegeGraph:
 
         with open(path) as f:
             text = f.read(MAX_SYMBOLS_TO_READ)
-            self._process_ontology(text)
+            self._process_ontology(text, )
 
     def _create_graph(self):
         for _, edge in self.edges_info:

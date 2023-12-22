@@ -44,14 +44,14 @@ class MistralAiCore:
             device_map="auto"
         )
 
-    def get_response(self, sys_prompt: str, user_prompt: str) -> str:
+    def get_response(self, sys_prompt: str, user_prompt: str, max_answer_tokens) -> str:
         prompt = self._create_message(sys_prompt, user_prompt)
         print("Prompt: " + prompt)
 
         sequences = self.pipe(
             prompt,
             do_sample=True,
-            max_new_tokens=10000,
+            max_new_tokens=max_answer_tokens,
             temperature=0.3,
             top_k=20,
             top_p=0.8,
