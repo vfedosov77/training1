@@ -56,7 +56,6 @@ class MistralAiCore:
         )
         response = sequences[0]['generated_text']
         print("Response: " + str(response))
-        exit(0)
         return response
 
 

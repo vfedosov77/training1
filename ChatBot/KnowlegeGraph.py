@@ -52,6 +52,10 @@ class KnowlegeGraph:
     def _get_id(path):
         return path
 
+    @staticmethod
+    def _create_json_for_path(path, kind, description):
+        return {"path": path, "kind": kind, "description": description}
+
     def _process_dir(self, path, children):
         dir_id = self._get_id(path)
 
@@ -62,13 +66,13 @@ class KnowlegeGraph:
         files_descriptions = []
 
         for child in children:
-            description = self.storage.get_json(self._get_id(child))
+            obj_json = self.storage.get_json(self._get_id(child))
 
-            if description is None:
+            if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            kind = "Directory" if os.path.isdir(child) else "File"
-            files_descriptions.append(kind + " " + os.path.basename(child) + ": " + description + "\n\n")
+            files_descriptions.append(obj_json["kind"] + " " + os.path.basename(child) + ": " +
+                                      obj_json["description"] + "\n\n")
 
         descriptions = "".join(files_descriptions)
         dir_name = os.path.basename(path)
@@ -78,9 +82,9 @@ class KnowlegeGraph:
 
         response = self.ai_core.get_response(prompt, 1500)
         response = response[len(prompt):]
-        self.storage.insert_json(dir_id, response)
+        response = response.replace("\n\n", "\n")
+        self.storage.insert_json(dir_id, self._create_json_for_path(path, "Directory", response))
         return dir_id
-
 
     def _process_file(self, path):
         suffix = pl.Path(path).suffix.lower()[1:]
@@ -105,6 +109,7 @@ class KnowlegeGraph:
 
             response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
             response = response[len(FILE_SUMMARY_PROMPT):]
-            self.storage.insert_json(file_id, response)
+            response = response.replace("\n\n", "\n")
+            self.storage.insert_json(file_id, self._create_json_for_path(path, "File", response))
 
         return file_id
