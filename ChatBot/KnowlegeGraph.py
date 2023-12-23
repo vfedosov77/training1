@@ -59,6 +59,9 @@ class KnowlegeGraph:
     def _process_dir(self, path, children):
         dir_id = self._get_id(path)
 
+        if not children:
+            raise ValueError()
+
         if self.storage.get_json(dir_id):
             print("Info was found for the directory: " + path)
             return dir_id
