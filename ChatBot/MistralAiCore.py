@@ -42,8 +42,7 @@ class MistralAiCore:
             device_map="auto"
         )
 
-    def get_response(self, sys_prompt: str, user_prompt: str, max_answer_tokens) -> str:
-        prompt = self._create_message(sys_prompt, user_prompt)
+    def get_response(self, prompt: str, max_answer_tokens) -> str:
         #print("Prompt: " + prompt)
 
         sequences = self.pipe(
@@ -60,8 +59,4 @@ class MistralAiCore:
         exit(0)
         return response
 
-    @staticmethod
-    def _create_message(sys_prompt: str, user_prompt: str):
-        #return INPUT_TEXT_FORMAT.format(sys_prompt, user_prompt)
-        return sys_prompt + "\n Here is the file:\n" + user_prompt
 

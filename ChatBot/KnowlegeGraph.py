@@ -1,5 +1,5 @@
 from ChatBot.Promts import *
-from JSONDataStorage import JSONDataStorage
+from ChatBot.JSONDataStorage import JSONDataStorage
 
 import os
 import pathlib as pl
@@ -76,7 +76,7 @@ class KnowlegeGraph:
         prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
             replace("[DIRECTORY_NAME]", dir_name)
 
-        response = self.ai_core.get_response(prompt)
+        response = self.ai_core.get_response(prompt, 1500)
         response = response[len(prompt):]
         self.storage.insert_json(dir_id, response)
         return dir_id
@@ -103,7 +103,7 @@ class KnowlegeGraph:
             if not text.strip():
                 raise ValueError()
 
-            response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text)
+            response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
             response = response[len(FILE_SUMMARY_PROMPT):]
             self.storage.insert_json(file_id, response)
 
