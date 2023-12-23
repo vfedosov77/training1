@@ -137,6 +137,31 @@ class KnowlegeGraph:
 
         return file_id
 
+    def _get_children(self, path):
+        children = []
+
+        for child in os.listdir(path):
+            item_json = self.storage.get_json(self._get_id(child))
+
+            if item_json:
+                children.append(item_json)
+
+        return children
+
+    def _get_parent_json(self, path):
+        folder_json = self.storage.get_json(self._get_id(os.path.dirname(path)))
+
+        if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
+            raise ValueError("Cannot find the folder json!!!!!!!!!! " + os.path.dirname(path))
+
+        if len(self._get_children()) < 3:
+            try:
+                folder_json = self._get_parent_json(os.path.dirname(path))
+            except ValueError():
+                pass
+
+        return folder_json
+
     def _generate_file_questions(self, path):
         file_id = self._get_id(path)
         file_json = self.storage.get_json(file_id)
@@ -148,13 +173,7 @@ class KnowlegeGraph:
             print("Found questions for the file " + path)
             return
 
-        folder_json = self.storage.get_json(self._get_id(os.path.dirname(path)))
-
-        if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
-            print("Cannot find the folder json!!!!!!!!!! " + os.path.dirname(path))
-            return
-
-        folder_desc = folder_json["description"]
+        folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
         prompt = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", os.path.basename(path)).\
             replace("[PROJECT_DESCRIPTION]", "This is an experimental project to investigate the ability of transformer AI to reduce the dimention of the vide data.").\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
