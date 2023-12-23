@@ -1,11 +1,9 @@
 from ChatBot.Promts import *
+from JSONDataStorage import JSONDataStorage
 
-from dataclasses import dataclass
-import networkx as nx
 import os
 import pathlib as pl
 import json
-
 
 USER_PROMPT = f"context: ```{input}``` \n\n output: "
 
@@ -15,90 +13,98 @@ NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
 
-@dataclass
-class EdgeInfo:
-    node1: str
-    node2: str
-    relations: set
-    count: int
-
 
 class KnowlegeGraph:
     def __init__(self, ai_core):
-        self.graph = nx.Graph()
+        self.storage: JSONDataStorage = None
         self.files_info = dict()
-        self.edges_info = dict()
+        self.dirs_info = dict()
         self.ai_core = ai_core
         self.code_suffices = {"cpp", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
 
-    def discover_project(self, path: str):
-        for root, dirs, files in os.walk(path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                print(file_path)
-                self._process_file(file_path)
+    def discover_project(self, project_path: str):
+        self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
 
-        self._create_graph()
+        def dfs(path):
+            children = []
 
-    def get_graph(self):
-        return self.graph
+            for child in os.listdir(path):
+                child_path = os.path.join(path, child)
 
-    @staticmethod
-    def _get_edge_key(self, node1, node2):
-        #if node1 >= node2:
-        #    return node1 + "###" + node2
+                try:
+                    if os.path.isdir(child_path):
+                        children.append(dfs(child_path))
+                    else:
+                        children.append(self._process_file(child_path))
+                except ValueError:
+                    pass
 
-        return node1 + "->" + node2
+            return self._process_dir(path, children)
 
-    def _add_ontology_items(self, items):
-        for item in items:
-            if len(item) != 3:
-                print("Wrong fields count: " + str(item))
-
-            if NODE_1 in item and NODE_2 in item and EDGE in item:
-                node1 = item[NODE_1]
-                node2 = item[NODE_2]
-                relation = item[EDGE]
-                key = self._get_edge_key(node1, node2)
-
-                if key in self.edges_info:
-                    info = self.edges_info[key]
-                    info.count += 1
-                    info.relations.add(relation)
-                else:
-                    info = EdgeInfo(node1, node2, {relation}, 1)
-                    self.edges_info[key] = info
+        dfs(project_path)
 
     @staticmethod
     def _get_max_answer_tokens_count(file_size):
         return file_size // 10
 
-    def _process_ontology(self, text):
-        response = self.ai_core.get_response(CODE_SYS_PROMPT, text, self._get_max_answer_tokens_count(len(text)))
-        try:
-            items = json.loads(response)
-            self._add_ontology_items(items)
-        except:
-            print("Wrong response: " + response)
+    @staticmethod
+    def _get_id(path):
+        return path
+
+    def _process_dir(self, path, children):
+        dir_id = self._get_id(path)
+
+        if self.storage.get_json(dir_id):
+            print("Info was found for the directory: " + path)
+            return dir_id
+
+        files_descriptions = []
+
+        for child in children:
+            description = self.storage.get_json(self._get_id(child))
+
+            if description is None:
+                raise RuntimeError("Not found ID which must be presented!")
+
+            kind = "Directory" if os.path.isdir(child) else "File"
+            files_descriptions.append(kind + " " + os.path.basename(child) + ": " + description + "\n\n")
+
+        descriptions = "".join(files_descriptions)
+        dir_name = os.path.basename(path)
+
+        prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
+            replace("[DIRECTORY_NAME]", dir_name)
+
+        response = self.ai_core.get_response(prompt)
+        response = response[len(prompt):]
+        self.storage.insert_json(dir_id, response)
+        return dir_id
+
 
     def _process_file(self, path):
         suffix = pl.Path(path).suffix.lower()[1:]
         is_code = suffix in self.code_suffices
         is_doc = suffix in self.doc_suffices
         print(suffix)
+
         if not is_code and not is_doc:
-            return
+            raise ValueError()
+
+        file_id = self._get_id(path)
+
+        if self.storage.get_json(file_id):
+            print("Info was found for the file: " + path)
+            return file_id
 
         with open(path) as f:
             text = f.read(MAX_SYMBOLS_TO_READ)
-            self._process_ontology(text, )
 
-    def _create_graph(self):
-        for _, edge in self.edges_info:
-            self.graph.add_edge(
-                edge.node1,
-                edge.node2,
-                title=str(edge.relations),
-                weight=edge.code
-            )
+            if not text.strip():
+                raise ValueError()
+
+            response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text)
+            response = response[len(FILE_SUMMARY_PROMPT):]
+            self.storage.insert_json(file_id, response)
+
+        return file_id
