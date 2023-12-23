@@ -55,7 +55,8 @@ class MistralAiCore:
             num_return_sequences=1,
         )
         response = sequences[0]['generated_text']
-        response = response[len(prompt):]
+        generated_text_start = response.find(prompt) + len(prompt)
+        response = response[generated_text_start:]
         response = response.replace("\n\n", "\n")
         print("Response: " + str(response))
         return response

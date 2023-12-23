@@ -13,6 +13,12 @@ NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
 
+FILE_KIND = "File"
+DIRECTORY_KIND = "Directory"
+QUESTIONS_FIELD = "questions"
+KIND_FIELD = "kind"
+DESCRIPTION_FIELD = "description"
+PATH_FIELD = "path"
 
 class KnowlegeGraph:
     def __init__(self, ai_core):
@@ -43,6 +49,19 @@ class KnowlegeGraph:
             return self._process_dir(path, children)
 
         dfs(project_path)
+        self._create_questions(project_path)
+
+    def _create_questions(self, project_path):
+        def dfs(path):
+            for child in os.listdir(path):
+                child_path = os.path.join(path, child)
+
+                if os.path.isdir(child_path):
+                    dfs(child_path)
+                else:
+                    self._generate_file_questions(child_path)
+
+        dfs(project_path)
 
     @staticmethod
     def _get_max_answer_tokens_count(file_size):
@@ -54,7 +73,7 @@ class KnowlegeGraph:
 
     @staticmethod
     def _create_json_for_path(path, kind, description):
-        return {"path": path, "kind": kind, "description": description}
+        return {PATH_FIELD: path, KIND_FIELD: kind, DESCRIPTION_FIELD: description}
 
     def _process_dir(self, path, children):
         dir_id = self._get_id(path)
@@ -74,8 +93,8 @@ class KnowlegeGraph:
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            files_descriptions.append(obj_json["kind"] + " " + os.path.basename(child) + ": " +
-                                      obj_json["description"] + "\n\n")
+            files_descriptions.append(obj_json[KIND_FIELD] + " " + os.path.basename(child) + ": " +
+                                      obj_json[DESCRIPTION_FIELD] + "\n\n")
 
         descriptions = "".join(files_descriptions)
         dir_name = os.path.basename(path)
@@ -84,8 +103,18 @@ class KnowlegeGraph:
             replace("[DIRECTORY_NAME]", dir_name)
 
         response = self.ai_core.get_response(prompt, 1500)
-        self.storage.insert_json(dir_id, self._create_json_for_path(path, "Directory", response))
+        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
         return dir_id
+
+    @staticmethod
+    def _get_file_content(path):
+        with open(path) as f:
+            text = f.read(MAX_SYMBOLS_TO_READ)
+
+            if not text.strip():
+                raise ValueError()
+
+        return text
 
     def _process_file(self, path):
         suffix = pl.Path(path).suffix.lower()[1:]
@@ -102,13 +131,34 @@ class KnowlegeGraph:
             print("Info was found for the file: " + path)
             return file_id
 
-        with open(path) as f:
-            text = f.read(MAX_SYMBOLS_TO_READ)
-
-            if not text.strip():
-                raise ValueError()
-
-            response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
-            self.storage.insert_json(file_id, self._create_json_for_path(path, "File", response))
+        text = self._get_file_content(path)
+        response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
+        self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
 
         return file_id
+
+    def _generate_file_questions(self, path):
+        file_id = self._get_id(path)
+        file_json = self.storage.get_json(file_id)
+
+        if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
+            return
+
+        if QUESTIONS_FIELD in file_json:
+            print("Found questions for the file " + path)
+            return
+
+        folder_json = self.storage.get_json(self._get_id(os.path.dirname(path)))
+
+        if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
+            print("Cannot find the folder json!!!!!!!!!! " + os.path.dirname(path))
+            return
+
+        folder_desc = folder_json["description"]
+        prompt = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", os.path.basename(path)).\
+            replace("[PROJECT_DESCRIPTION]", "This is an experimental project to investigate the ability of transformer AI to reduce the dimention of the vide data.").\
+            replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
+
+        response = self.ai_core.get_response(prompt, 5000)
+        file_json[QUESTIONS_FIELD] = response
+        self.storage.insert_json(file_id, file_json)
