@@ -43,7 +43,7 @@ class MistralAiCore:
         )
 
     def get_response(self, prompt: str, max_answer_tokens) -> str:
-        #print("Prompt: " + prompt)
+        print("Prompt: " + prompt)
 
         sequences = self.pipe(
             prompt,
@@ -55,6 +55,8 @@ class MistralAiCore:
             num_return_sequences=1,
         )
         response = sequences[0]['generated_text']
+        response = response[len(prompt):]
+        response = response.replace("\n\n", "\n")
         print("Response: " + str(response))
         return response
 

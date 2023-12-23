@@ -84,8 +84,6 @@ class KnowlegeGraph:
             replace("[DIRECTORY_NAME]", dir_name)
 
         response = self.ai_core.get_response(prompt, 1500)
-        response = response[len(prompt):]
-        response = response.replace("\n\n", "\n")
         self.storage.insert_json(dir_id, self._create_json_for_path(path, "Directory", response))
         return dir_id
 
@@ -111,8 +109,6 @@ class KnowlegeGraph:
                 raise ValueError()
 
             response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
-            response = response[len(FILE_SUMMARY_PROMPT):]
-            response = response.replace("\n\n", "\n")
             self.storage.insert_json(file_id, self._create_json_for_path(path, "File", response))
 
         return file_id
