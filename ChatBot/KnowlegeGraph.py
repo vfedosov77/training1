@@ -41,6 +41,9 @@ class KnowlegeGraph:
             for child in os.listdir(path):
                 child_path = os.path.join(path, child)
 
+                if "opencv-2.4.6.1" in child_path:
+                    continue
+
                 try:
                     if os.path.isdir(child_path):
                         children.append(dfs(child_path))
