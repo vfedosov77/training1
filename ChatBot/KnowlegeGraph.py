@@ -154,7 +154,7 @@ class KnowlegeGraph:
         if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
             raise ValueError("Cannot find the folder json!!!!!!!!!! " + os.path.dirname(path))
 
-        if len(self._get_children()) < 3:
+        if len(self._get_children(path)) < 3:
             try:
                 folder_json = self._get_parent_json(os.path.dirname(path))
             except ValueError():
