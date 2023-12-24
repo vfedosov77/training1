@@ -20,6 +20,8 @@ QUESTIONS_FIELD = "questions"
 KIND_FIELD = "kind"
 DESCRIPTION_FIELD = "description"
 PATH_FIELD = "path"
+BROCKEN_KIND = "brocken"
+
 
 class KnowlegeGraph:
     def __init__(self, ai_core):
@@ -49,6 +51,9 @@ class KnowlegeGraph:
                 except RuntimeError as e:
                     torch.cuda.empty_cache()
                     print(f"Cannot process {child_path} because of the lack of the GPU memory")
+
+                    self.storage.insert_json(self._get_id(child_path),
+                                             self._create_json_for_path(child_path, BROCKEN_KIND, ""))
 
             return self._process_dir(path, children)
 
@@ -87,7 +92,12 @@ class KnowlegeGraph:
 
         print("Dir: " + path)
 
-        if self.storage.get_json(dir_id):
+        dir_json = self.storage.get_json(dir_id)
+        if dir_json:
+            if dir_json[KIND_FIELD] == BROCKEN_KIND:
+                print("Directory was not parsed because of memory error previously: " + path)
+                raise ValueError()
+
             print("Info was found for the directory: " + path)
             return dir_id
 
@@ -133,8 +143,13 @@ class KnowlegeGraph:
         print("File: " + path)
 
         file_id = self._get_id(path)
+        file_json = self.storage.get_json(file_id)
 
-        if self.storage.get_json(file_id):
+        if file_json:
+            if file_json[KIND_FIELD] == BROCKEN_KIND:
+                print("File was not parsed because of memory error previously: " + path)
+                raise ValueError()
+
             print("Info was found for the file: " + path)
             return file_id
 
