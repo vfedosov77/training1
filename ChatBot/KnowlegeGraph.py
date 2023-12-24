@@ -127,9 +127,7 @@ class KnowlegeGraph:
         self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
         return dir_id
 
-    def _create_short_children_descriptions(self, children, files_descriptions):
-
-
+    def _create_children_descriptions(self, children, files_descriptions):
         for child in children:
             obj_json = self.storage.get_json(self._get_id(child))
 
@@ -141,7 +139,7 @@ class KnowlegeGraph:
         descriptions = "".join(files_descriptions)
         return descriptions
 
-    def _create_short_descriptions(self, children, files_descriptions):
+    def _create_short_children_descriptions(self, children, files_descriptions):
         max_simbols_per_file = 5000 // len(children)
 
         for child in children:
@@ -150,7 +148,7 @@ class KnowlegeGraph:
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            desc = obj_json[DESCRIPTION_FIELD][:max_simbols_per_file]
+            desc = obj_json[DESCRIPTION_FIELD][:max_simbols_per_file].replace("n", "")
             files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
                                       desc + "...\n\n")
         descriptions = "".join(files_descriptions)
