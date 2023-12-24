@@ -102,7 +102,7 @@ class KnowlegeGraph:
         prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
             replace("[DIRECTORY_NAME]", dir_name)
 
-        response = self.ai_core.get_response(prompt, 1500)
+        response = self.ai_core.get_short_conversation_result(prompt, 1500)
         self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
         return dir_id
 
@@ -132,7 +132,7 @@ class KnowlegeGraph:
             return file_id
 
         text = self._get_file_content(path)
-        response = self.ai_core.get_response(FILE_SUMMARY_PROMPT + text, 1500)
+        response = self.ai_core.get_short_conversation_result(FILE_SUMMARY_PROMPT + text, 1500)
         self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
 
         return file_id
@@ -163,21 +163,36 @@ class KnowlegeGraph:
         return folder_json
 
     def _generate_file_questions(self, path):
+        file_name = os.path.basename(path)
+
+        def check_response(response: str):
+            if response.find(file_name) != -1:
+                return False
+
+            class_name = file_name.replace("_", "").lower()
+
+            if response.lower().find(class_name) != -1:
+                return False
+
+            return True
+
         file_id = self._get_id(path)
         file_json = self.storage.get_json(file_id)
 
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        if QUESTIONS_FIELD in file_json:
-            print("Found questions for the file " + path)
-            return
+        #if QUESTIONS_FIELD in file_json:
+        #    print("Found questions for the file " + path)
+        #    return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
-        prompt = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", os.path.basename(path)).\
+        prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
             replace("[PROJECT_DESCRIPTION]", "This is an experimental project to investigate the ability of transformer AI to reduce the dimention of the vide data.").\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
 
-        response = self.ai_core.get_response(prompt, 5000)
+        response = self.ai_core.get_1_or_2_steps_conversation_result(
+            prompt1, FILE_QUESTIONS_ADDITIONAL_PROMPT, check_response, 2000)
+
         file_json[QUESTIONS_FIELD] = response
         self.storage.insert_json(file_id, file_json)
