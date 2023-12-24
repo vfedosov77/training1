@@ -158,7 +158,7 @@ class KnowlegeGraph:
         if len(self._get_children(parent)) < 3:
             try:
                 folder_json = self._get_parent_json(parent)
-            except ValueError():
+            except ValueError:
                 pass
 
         return folder_json
