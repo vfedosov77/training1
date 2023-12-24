@@ -8,7 +8,7 @@ import json
 USER_PROMPT = f"context: ```{input}``` \n\n output: "
 
 AI_REQUEST = ""
-MAX_SYMBOLS_TO_READ = 50000
+MAX_SYMBOLS_TO_READ = 30000
 NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
