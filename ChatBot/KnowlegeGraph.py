@@ -32,6 +32,8 @@ class KnowlegeGraph:
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
 
+        #self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
+
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
 
@@ -98,16 +100,35 @@ class KnowlegeGraph:
 
         print("Dir: " + path)
 
+        to_fix = False
         dir_json = self.storage.get_json(dir_id)
         if dir_json:
             if dir_json[KIND_FIELD] == BROCKEN_KIND:
-                print("Directory was not parsed because of memory error previously: " + path)
-                raise ValueError()
-
-            print("Info was found for the directory: " + path)
-            return dir_id
+                to_fix = True
+                #print("Directory was not parsed because of memory error previously: " + path)
+                #raise ValueError()
+            else:
+                print("Info was found for the directory: " + path)
+                return dir_id
 
         files_descriptions = []
+
+        if to_fix:
+            descriptions = self._create_short_children_descriptions(children, files_descriptions)
+        else:
+            descriptions = self._create_children_descriptions(children, files_descriptions)
+
+        dir_name = os.path.basename(path)
+
+        prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
+            replace("[DIRECTORY_NAME]", dir_name)
+
+        response = self.ai_core.get_short_conversation_result(prompt, 1500)
+        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
+        return dir_id
+
+    def _create_short_children_descriptions(self, children, files_descriptions):
+
 
         for child in children:
             obj_json = self.storage.get_json(self._get_id(child))
@@ -117,16 +138,23 @@ class KnowlegeGraph:
 
             files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
                                       obj_json[DESCRIPTION_FIELD] + "\n\n")
-
         descriptions = "".join(files_descriptions)
-        dir_name = os.path.basename(path)
+        return descriptions
 
-        prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
-            replace("[DIRECTORY_NAME]", dir_name)
+    def _create_short_descriptions(self, children, files_descriptions):
+        max_simbols_per_file = 5000 // len(children)
 
-        response = self.ai_core.get_short_conversation_result(prompt, 1500)
-        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
-        return dir_id
+        for child in children:
+            obj_json = self.storage.get_json(self._get_id(child))
+
+            if json is None:
+                raise RuntimeError("Not found ID which must be presented!")
+
+            desc = obj_json[DESCRIPTION_FIELD][:max_simbols_per_file]
+            files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
+                                      desc + "...\n\n")
+        descriptions = "".join(files_descriptions)
+        return descriptions
 
     @staticmethod
     def _get_file_content(path):
