@@ -105,7 +105,7 @@ class MistralAiCore:
             if id == 0:
                 return prompt1
 
-            if check_answer_callback(answer):
+            if id > 1 or check_answer_callback(answer):
                 return None
 
             return prompt2
