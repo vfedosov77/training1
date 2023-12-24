@@ -1,6 +1,7 @@
 from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 
+import torch
 import os
 import pathlib as pl
 import json
@@ -45,6 +46,9 @@ class KnowlegeGraph:
                         children.append(self._process_file(child_path))
                 except ValueError:
                     pass
+                except RuntimeError as e:
+                    torch.cuda.empty_cache()
+                    print(f"Cannot process {child_path} because of the lack of the GPU memory")
 
             return self._process_dir(path, children)
 
