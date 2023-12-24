@@ -26,7 +26,7 @@ class KnowlegeGraph:
         self.files_info = dict()
         self.dirs_info = dict()
         self.ai_core = ai_core
-        self.code_suffices = {"cpp", "h", "hpp", "java", "py"}
+        self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
 
     def discover_project(self, project_path: str):
@@ -120,7 +120,6 @@ class KnowlegeGraph:
         suffix = pl.Path(path).suffix.lower()[1:]
         is_code = suffix in self.code_suffices
         is_doc = suffix in self.doc_suffices
-        print(suffix)
 
         if not is_code and not is_doc:
             raise ValueError()
@@ -190,7 +189,7 @@ class KnowlegeGraph:
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 
         prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
-            replace("[PROJECT_DESCRIPTION]", "This is an experimental project to investigate the ability of transformer AI to reduce the dimention of the vide data.").\
+            replace("[PROJECT_DESCRIPTION]", "This project is an augmented reality engine for Android devices.").\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
 
         prompt2 = FILE_QUESTIONS_ADDITIONAL_PROMPT.replace("[FILE_NAME]", file_name)
