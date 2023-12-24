@@ -8,7 +8,7 @@ import json
 USER_PROMPT = f"context: ```{input}``` \n\n output: "
 
 AI_REQUEST = ""
-MAX_SYMBOLS_TO_READ = 30000
+MAX_SYMBOLS_TO_READ = 20000
 NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
@@ -81,6 +81,8 @@ class KnowlegeGraph:
         if not children:
             raise ValueError()
 
+        print("Dir: " + path)
+
         if self.storage.get_json(dir_id):
             print("Info was found for the directory: " + path)
             return dir_id
@@ -123,6 +125,8 @@ class KnowlegeGraph:
 
         if not is_code and not is_doc:
             raise ValueError()
+
+        print("File: " + path)
 
         file_id = self._get_id(path)
 
