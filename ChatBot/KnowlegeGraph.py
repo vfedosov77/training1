@@ -149,14 +149,15 @@ class KnowlegeGraph:
         return children
 
     def _get_parent_json(self, path):
-        folder_json = self.storage.get_json(self._get_id(os.path.dirname(path)))
+        parent = os.path.dirname(path)
+        folder_json = self.storage.get_json(self._get_id(parent))
 
         if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
-            raise ValueError("Cannot find the folder json!!!!!!!!!! " + os.path.dirname(path))
+            raise ValueError("Cannot find the folder json!!!!!!!!!! " + parent)
 
-        if len(self._get_children(path)) < 3:
+        if len(self._get_children(parent)) < 3:
             try:
-                folder_json = self._get_parent_json(os.path.dirname(path))
+                folder_json = self._get_parent_json(parent)
             except ValueError():
                 pass
 
