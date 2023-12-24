@@ -188,12 +188,15 @@ class KnowlegeGraph:
         #    return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
+
         prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
             replace("[PROJECT_DESCRIPTION]", "This is an experimental project to investigate the ability of transformer AI to reduce the dimention of the vide data.").\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
 
+        prompt2 = FILE_QUESTIONS_ADDITIONAL_PROMPT.replace("[FILE_NAME]", file_name)
+
         response = self.ai_core.get_1_or_2_steps_conversation_result(
-            prompt1, FILE_QUESTIONS_ADDITIONAL_PROMPT, check_response, 2000)
+            prompt1, prompt2, check_response, 2000)
 
         file_json[QUESTIONS_FIELD] = response
         self.storage.insert_json(file_id, file_json)

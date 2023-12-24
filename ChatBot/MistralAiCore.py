@@ -81,7 +81,8 @@ class MistralAiCore:
                 max_new_tokens=max_answer_tokens,
                 temperature=0.3,
                 top_k=20,
-                top_p=0.8)
+                top_p=0.8,
+                pad_token_id=self.conversational_pipe.tokenizer.eos_token_id)
 
             answer = conversation.messages[-1]["content"]
             print("Response: " + str(answer))

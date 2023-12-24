@@ -62,5 +62,6 @@ Please take into account that user probably don't know about that file and the c
 He probably has a related bug or he investigates the project asking questions. 
 He can ask also questions related to extending or integrating the code, or any specific implementation details etc."""
 
-FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told the user is not familiar with the file name and the classes/functions 
-names of that file - he knows the project and he only starts to investigate the implementation"""
+FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told user is not familiar with the file name and the classes/functions names 
+of that file - he knows the project and he only starts to investigate the implementation. But please generate only 
+questions regarding the info which is included in [FILE_NAME] - not mentioning the name of the file. """
