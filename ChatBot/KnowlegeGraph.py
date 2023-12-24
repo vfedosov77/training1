@@ -8,7 +8,7 @@ import json
 USER_PROMPT = f"context: ```{input}``` \n\n output: "
 
 AI_REQUEST = ""
-MAX_SYMBOLS_TO_READ = 20000
+MAX_SYMBOLS_TO_READ = 25000
 NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
@@ -123,7 +123,7 @@ class KnowlegeGraph:
         is_code = suffix in self.code_suffices
         is_doc = suffix in self.doc_suffices
 
-        if not is_code and not is_doc:
+        if not is_code:# and not is_doc:
             raise ValueError()
 
         print("File: " + path)
