@@ -71,7 +71,10 @@ class KnowlegeGraph:
                 if os.path.isdir(child_path):
                     dfs(child_path)
                 else:
-                    self._generate_file_questions(child_path)
+                    suffix = pl.Path(child).suffix.lower()[1:]
+
+                    if suffix in self.code_suffices:
+                        self._generate_file_questions(child_path)
 
         dfs(project_path)
 
@@ -112,7 +115,7 @@ class KnowlegeGraph:
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            files_descriptions.append(obj_json[KIND_FIELD] + " " + os.path.basename(child) + ": " +
+            files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
                                       obj_json[DESCRIPTION_FIELD] + "\n\n")
 
         descriptions = "".join(files_descriptions)
