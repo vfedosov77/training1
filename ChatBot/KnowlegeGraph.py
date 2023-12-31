@@ -22,6 +22,9 @@ DESCRIPTION_FIELD = "description"
 PATH_FIELD = "path"
 BROCKEN_KIND = "brocken"
 
+SHORT_FOLDER_DESCRIPTION_SIZE = 3000
+SHORT_FILES_DESCRIPTION_SIZE = 5000
+
 
 class KnowlegeGraph:
     def __init__(self, ai_core):
@@ -142,7 +145,7 @@ class KnowlegeGraph:
         return descriptions
 
     def _create_short_children_descriptions(self, children, files_descriptions):
-        max_simbols_per_file = 5000 // len(children)
+        max_simbols_per_file = SHORT_FILES_DESCRIPTION_SIZE // len(children)
 
         for child in children:
             obj_json = self.storage.get_json(self._get_id(child))
@@ -219,7 +222,7 @@ class KnowlegeGraph:
 
         return folder_json
 
-    def _generate_file_questions(self, path):
+    def _generate_file_questions(self, path, short_request=False):
         file_name = os.path.basename(path)
 
         def check_response(response: str):
@@ -245,14 +248,26 @@ class KnowlegeGraph:
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 
+        if short_request:
+            folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
+
         prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
             replace("[PROJECT_DESCRIPTION]", "This project is an augmented reality engine for Android devices.").\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
 
         prompt2 = FILE_QUESTIONS_ADDITIONAL_PROMPT.replace("[FILE_NAME]", file_name)
 
-        response = self.ai_core.get_1_or_2_steps_conversation_result(
-            prompt1, prompt2, check_response, 2000)
+        try:
+            response = self.ai_core.get_1_or_2_steps_conversation_result(
+                prompt1, prompt2, check_response, 2000)
 
-        file_json[QUESTIONS_FIELD] = response
-        self.storage.insert_json(file_id, file_json)
+            file_json[QUESTIONS_FIELD] = response
+            self.storage.insert_json(file_id, file_json)
+        except RuntimeError as e:
+            if not short_request:
+                print("GPU memory issue - try a short version of the request.")
+                self._generate_file_questions(path, True)
+            else:
+                print("ERROR! GPU memory issue during the short request.")
+                raise e
+
