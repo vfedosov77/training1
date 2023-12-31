@@ -28,7 +28,7 @@ FILE_SUMMARY_PROMPT = \
     key functionalities, and any notable features or methods. Here is the content: """
 
 DIRECTORY_SUMMARY_PROMPT = \
-""""Generate a summary that captures the collective functionality and key themes of the directory [DIRECTORY_NAME], 
+""""Generate a summary that captures the collective functionality and key themes of the directory '[DIRECTORY_NAME]', 
 focusing on the overall role and contribution of the directory in the project context. 
 The directory contains several files, each contributing to the broader functionality. 
 Listed below are the files with minimal details:
@@ -56,7 +56,7 @@ The whole project description: [PROJECT_DESCRIPTION]
 And here are the summaries for the parent folder: [PARENT_FOLDER_DESCRIPTION]
 
 Based on this information, generate a list of potential questions of the project user which can touch the details 
-mentioned in the provided [FILE_NAME]. 
+mentioned in the provided '[FILE_NAME]'. 
 That can be any project-related question which answers require to see that file. 
 Please take into account that user probably don't know about that file and the classes/functions inside of it. 
 He probably has a related bug or he investigates the project asking questions. 
@@ -64,4 +64,4 @@ He can ask also questions related to extending or integrating the code, or any s
 
 FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told user is not familiar with the file name and the classes/functions names 
 of that file - he knows the project and he only starts to investigate the implementation. But please generate only 
-questions regarding the info which is included in [FILE_NAME] - not mentioning the name of the file. """
+questions regarding the info which is included in '[FILE_NAME]' - not mentioning the name of the file. """

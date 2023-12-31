@@ -105,11 +105,9 @@ class KnowlegeGraph:
         if dir_json:
             if dir_json[KIND_FIELD] == BROCKEN_KIND:
                 to_fix = True
-                #print("Directory was not parsed because of memory error previously: " + path)
-                #raise ValueError()
-            else:
-                print("Info was found for the directory: " + path)
-                return dir_id
+            #else:
+            #    print("Info was found for the directory: " + path)
+            #    return dir_id
 
         files_descriptions = []
 
@@ -135,7 +133,7 @@ class KnowlegeGraph:
                 raise RuntimeError("Not found ID which must be presented!")
 
             files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
-                                      obj_json[DESCRIPTION_FIELD] + "\n\n")
+                                      obj_json[DESCRIPTION_FIELD].replace("\n", "") + "\n\n")
         descriptions = "".join(files_descriptions)
         return descriptions
 
@@ -148,7 +146,7 @@ class KnowlegeGraph:
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            desc = obj_json[DESCRIPTION_FIELD][:max_simbols_per_file].replace("n", "")
+            desc = obj_json[DESCRIPTION_FIELD][:max_simbols_per_file].replace("\n", "")
             files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
                                       desc + "...\n\n")
         descriptions = "".join(files_descriptions)
