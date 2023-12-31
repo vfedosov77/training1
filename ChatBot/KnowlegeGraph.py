@@ -59,8 +59,13 @@ class KnowlegeGraph:
 
                     self.storage.insert_json(self._get_id(child_path),
                                              self._create_json_for_path(child_path, BROCKEN_KIND, ""))
-
-            return self._process_dir(path, children)
+            try:
+                return self._process_dir(path, children, False)
+            except RuntimeError as e:
+                torch.cuda.empty_cache()
+                print(f"Cannot process {child_path} because of the lack of the GPU memory. Will try to create a "
+                      f"shorter version of the request.")
+                return self._process_dir(path, children, True)
 
         dfs(project_path)
         self._create_questions(project_path)
@@ -92,7 +97,7 @@ class KnowlegeGraph:
     def _create_json_for_path(path, kind, description):
         return {PATH_FIELD: path, KIND_FIELD: kind, DESCRIPTION_FIELD: description}
 
-    def _process_dir(self, path, children):
+    def _process_dir(self, path, children, make_short_request):
         dir_id = self._get_id(path)
 
         if not children:
@@ -100,18 +105,17 @@ class KnowlegeGraph:
 
         print("Dir: " + path)
 
-        to_fix = False
         dir_json = self.storage.get_json(dir_id)
         if dir_json:
             if dir_json[KIND_FIELD] == BROCKEN_KIND:
-                to_fix = True
+                make_short_request = True
             #else:
             #    print("Info was found for the directory: " + path)
             #    return dir_id
 
         files_descriptions = []
 
-        if to_fix:
+        if make_short_request:
             descriptions = self._create_short_children_descriptions(children, files_descriptions)
         else:
             descriptions = self._create_children_descriptions(children, files_descriptions)
