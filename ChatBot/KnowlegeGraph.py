@@ -84,7 +84,10 @@ class KnowlegeGraph:
                     suffix = pl.Path(child).suffix.lower()[1:]
 
                     if suffix in self.code_suffices:
-                        self._generate_file_questions(child_path)
+                        try:
+                            self._generate_file_questions(child_path)
+                        except ValueError:
+                            pass
 
         dfs(project_path)
 
