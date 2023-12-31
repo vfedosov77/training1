@@ -112,9 +112,9 @@ class KnowlegeGraph:
         if dir_json:
             if dir_json[KIND_FIELD] == BROCKEN_KIND:
                 make_short_request = True
-            #else:
-            #    print("Info was found for the directory: " + path)
-            #    return dir_id
+            else:
+                print("Info was found for the directory: " + path)
+                return dir_id
 
         files_descriptions = []
 
@@ -161,11 +161,14 @@ class KnowlegeGraph:
 
     @staticmethod
     def _get_file_content(path):
-        with open(path) as f:
-            text = f.read(MAX_SYMBOLS_TO_READ)
+        try:
+            with open(path) as f:
+                text = f.read(MAX_SYMBOLS_TO_READ)
 
-            if not text.strip():
-                raise ValueError()
+                if not text.strip():
+                    raise ValueError()
+        except UnicodeDecodeError:
+            text = f.read(-1)[:MAX_SYMBOLS_TO_READ]
 
         return text
 
