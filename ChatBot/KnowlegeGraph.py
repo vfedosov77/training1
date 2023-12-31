@@ -266,6 +266,7 @@ class KnowlegeGraph:
         except RuntimeError as e:
             if not short_request:
                 print("GPU memory issue - try a short version of the request.")
+                torch.cuda.empty_cache()
                 self._generate_file_questions(path, True)
             else:
                 print("ERROR! GPU memory issue during the short request.")
