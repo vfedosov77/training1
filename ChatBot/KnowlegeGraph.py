@@ -168,7 +168,8 @@ class KnowlegeGraph:
                 if not text.strip():
                     raise ValueError()
         except UnicodeDecodeError:
-            text = f.read(-1)[:MAX_SYMBOLS_TO_READ]
+            with open(path) as f:
+                text = f.read(-1)[:MAX_SYMBOLS_TO_READ]
 
         return text
 
