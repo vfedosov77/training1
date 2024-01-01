@@ -49,7 +49,7 @@ class KnowlegeGraph:
             if QUESTIONS_FIELD in item:
                 questions.update({question: item[PATH_FIELD] for question in self._parse_questions(item[QUESTIONS_FIELD])})
 
-        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION)
+        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage)
 
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
