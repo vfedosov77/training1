@@ -81,11 +81,13 @@ Please format the result as:
  ..."""
 
 TOPICS_QUSTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
-topics. I already found the topics and now I need to find all the related questions for each topic. Here is one of the topics:
+topics. I already found the topics and now I need to find all the related questions for each topic. 
+Here is one of the topics:
 
 [TOPIC]
 
-Please provide the list the numbers of the questions that are relevant to that topic. These are the questions:
+Please provide the list the numbers of the questions that are relevant to that topic. Don't use ranges in the result.
+These are the questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
