@@ -9,7 +9,7 @@ import pathlib as pl
 import json
 from typing import Dict, List
 
-QUESTIONS_PER_REQUEST = 80
+QUESTIONS_PER_REQUEST = 70
 
 
 class QuestionsTree:
