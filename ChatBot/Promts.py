@@ -97,7 +97,7 @@ These are the questions:
 Please mention only the questions which are clearly related to the topic.
 Don't use ranges.
 The result must be formatted as the comma separated numbers.
-If there are any doubts that the question and the topic are related - don't include that question's number."""
+If there are any doubts that a question and the topic are related - don't include that question's number."""
 
 ONLY_COMMA_SEPARATED_PROMPT = """Please write only comma separated numbers of questions in your response."""
 

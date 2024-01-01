@@ -36,7 +36,7 @@ class QuestionsTree:
 
         if result is not None:
             print("Loaded topics:")
-            for topic, questions in result:
+            for topic, questions in result.items():
                 print(topic + ": " + str(questions))
 
             if len(result) >= result_required_size:
@@ -66,6 +66,7 @@ class QuestionsTree:
 
                     if len(related) > QUESTIONS_PER_REQUEST // 2:
                         too_wide = True
+                        print("Too many related items - the topic is not distinct")
                         break
 
                 if not too_wide and len(all_questions) // 3 > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
@@ -77,8 +78,10 @@ class QuestionsTree:
 
                     self.storage.insert_json(MAIN_TOPICS_ID, result)
 
+                    print("Found " + str(len(result)) + " topics.")
+
         print("Fond topics:")
-        for topic, questions in result:
+        for topic, questions in result.items():
             print(topic + ": " + str(questions))
 
         return result
