@@ -46,12 +46,23 @@ class QuestionsTree:
         return result
 
     def _get_topics(self, questions: List[str]) -> List[str]:
+        def check_response(response):
+            try:
+                topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
+                return len(topics) <= 7
+            except Exception:
+                return False
+
         questions_with_numbers = self._get_questions_with_numbers(questions)
 
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
             replace("[PROJECT_DESCRIPTION]", self.proj_description)
 
-        response = self.ai_core.get_short_conversation_result(prompt, 300)
+        response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
+                                                                     ONLY_A_FEW_ITEMS_PROMPT,
+                                                                     check_response,
+                                                                     300)
+
         topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
         topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
         print("Found topics: " + str(topics))
@@ -61,7 +72,7 @@ class QuestionsTree:
         return "".join(str(id + 1) + ". " + quest + "\n" for id, quest in enumerate(questions))
 
     @staticmethod
-    def _get_ids(self, response):
+    def _get_ids(response):
         response = response.split('\n')[0].replace(".", "")
         ids = [int(idx) for idx in response.split(",") if idx.strip()]
         return ids

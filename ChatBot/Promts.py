@@ -51,7 +51,7 @@ in the previous step. Here is the full code of [FILE_NAME]:
 [SOURCES]
 
 
-The whole project description: [PROJECT_DESCRIPTION]
+The whole project description: '[PROJECT_DESCRIPTION]'
 
 And here are the summaries for the parent folder: [PARENT_FOLDER_DESCRIPTION]
 
@@ -67,7 +67,7 @@ of that file - he knows the project and he only starts to investigate the implem
 questions regarding the info which is included in '[FILE_NAME]' - not mentioning the name of the file. """
 
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
-topics. The whole project description: [PROJECT_DESCRIPTION]
+topics. The whole project description: '[PROJECT_DESCRIPTION]'
 
 Please analyze these questions and identify a few major topics (2-7) that they broadly fall under. 
 This will help in categorizing and referencing the questions efficiently. Only topics names are required.
@@ -100,6 +100,8 @@ The result must be formatted as the comma separated numbers.
 If there are any doubts that the question and the topic are related - don't include that question's number."""
 
 ONLY_COMMA_SEPARATED_PROMPT = """Please write only comma separated numbers of questions in your response."""
+
+ONLY_A_FEW_ITEMS_PROMPT = """Please write only up to 7 main topics in your response."""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:
