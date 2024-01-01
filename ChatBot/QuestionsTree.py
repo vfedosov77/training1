@@ -9,7 +9,7 @@ import pathlib as pl
 import json
 from typing import Dict, List
 
-QUESTIONS_PER_REQUEST = 100
+QUESTIONS_PER_REQUEST = 80
 
 
 class QuestionsTree:
@@ -47,7 +47,7 @@ class QuestionsTree:
     def _get_topics(self, questions: List[str]) -> List[str]:
         questions_with_numbers = self._get_questions_with_numbers(questions)
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
-        response = self.ai_core.get_short_conversation_result(prompt, 700)
+        response = self.ai_core.get_short_conversation_result(prompt, 300)
         topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
         topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
         print("Found topics: " + str(topics))
