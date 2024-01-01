@@ -45,7 +45,7 @@ class KnowlegeGraph:
 
         for item in items:
             if QUESTIONS_FIELD in item:
-                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD]})
+                questions.update({question: item[PATH_FIELD] for question in self._parse_questions(item[QUESTIONS_FIELD])})
 
         self.tree = QuestionsTree(questions, self.ai_core)
 
@@ -84,6 +84,19 @@ class KnowlegeGraph:
 
         dfs(project_path)
         self._create_questions(project_path)
+
+    @staticmethod
+    def _parse_questions(questions_str):
+        idx = questions_str.find("1. ")
+
+        if idx == -1:
+            print("Error!!!!!!!!!!!!!!!!!!!!: cannot find the first question")
+            return []
+
+        questions_str = questions_str[idx:]
+        return [q.replace(str(q_id + 1) + ". ", "") for q_id, q in enumerate(questions_str.split("\n"))]
+
+
 
     def _create_questions(self, project_path):
         def dfs(path):
