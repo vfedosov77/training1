@@ -253,9 +253,9 @@ class KnowlegeGraph:
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        #if QUESTIONS_FIELD in file_json:
-        #    print("Found questions for the file " + path)
-        #    return
+        if QUESTIONS_FIELD in file_json:
+            print("Found questions for the file " + path)
+            return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 
