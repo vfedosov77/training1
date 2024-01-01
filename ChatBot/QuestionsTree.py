@@ -48,6 +48,7 @@ class QuestionsTree:
             # TODO: optimize it - _get_questions_with_numbers is called for each topic
             for topic in topics:
                 topics_questions = []
+                too_wide = False
 
                 for i in range(0, len(all_questions), QUESTIONS_PER_REQUEST):
                     subset = all_questions[i: i + QUESTIONS_PER_REQUEST]
@@ -55,7 +56,11 @@ class QuestionsTree:
                     related = self._find_questions_related_to_topic(subset, topic)
                     topics_questions.extend(related)
 
-                if len(all_questions) / 2 > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
+                    if len(related) > QUESTIONS_PER_REQUEST // 2:
+                        too_wide = True
+                        break
+
+                if not too_wide and len(all_questions) // 3 > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
                     result[topic] = topics_questions
 
                     for question in related:
@@ -92,7 +97,7 @@ class QuestionsTree:
         response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
                                                                      ONLY_A_FEW_ITEMS_PROMPT,
                                                                      check_response,
-                                                                     300)
+                                                                     100)
 
         topics = [remove_extra_info(topic) for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
         topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
@@ -125,7 +130,7 @@ class QuestionsTree:
         response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
                                                                      ONLY_COMMA_SEPARATED_PROMPT,
                                                                      check_response,
-                                                                     300)
+                                                                     100)
 
         ids = self._get_ids(response)
         return [questions[idx - 1] for idx in ids]
