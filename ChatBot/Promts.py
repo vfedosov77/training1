@@ -97,9 +97,9 @@ These are the questions:
 Please mention only the questions which are clearly related tot he topic.
 Don't use ranges.
 The result must be formatted as the comma separated numbers.
-If there are any doubts that the question and the topic are related - don't include that question's number.
-Don't use ranges.
-Only comma separated numbers must be in your response"""
+If there are any doubts that the question and the topic are related - don't include that question's number."""
+
+ONLY_COMMA_SEPARATED_PROMPT = """Please write only comma separated numbers of questions in your response."""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:
