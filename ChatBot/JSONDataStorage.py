@@ -36,8 +36,7 @@ class JSONDataStorage:
     def get_all(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT json_data FROM data_store")
-        rows = cursor.fetchall()
-        return [json.loads(row) for row in rows]
+        return [json.loads(row[0]) for row in cursor]
 
     def close(self):
         self.conn.close()
