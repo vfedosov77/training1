@@ -40,7 +40,7 @@ class QuestionsTree:
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
-        all_questions = all_questions[QUESTIONS_FOR_MAIN_TOPICS:]
+        all_questions = all_questions[:QUESTIONS_FOR_MAIN_TOPICS]
         questions_to_distribute = set(all_questions)
 
         while len(result) < MAIN_TOPICS_COUNT * 2:
