@@ -40,8 +40,9 @@ class QuestionsTree:
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
+        questions_to_distribute = set(all_questions[:(QUESTIONS_FOR_MAIN_TOPICS * 2) // 3])
         all_questions = all_questions[:QUESTIONS_FOR_MAIN_TOPICS]
-        questions_to_distribute = set(questions2files.keys())
+
 
         while len(result) < MAIN_TOPICS_COUNT * 2:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
