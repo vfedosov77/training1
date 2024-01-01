@@ -41,7 +41,7 @@ class QuestionsTree:
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
         all_questions = all_questions[:QUESTIONS_FOR_MAIN_TOPICS]
-        questions_to_distribute = set(all_questions)
+        questions_to_distribute = set(questions2files.keys())
 
         while len(result) < MAIN_TOPICS_COUNT * 2:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
@@ -66,7 +66,8 @@ class QuestionsTree:
                     result[topic] = topics_questions
 
                     for question in related:
-                        questions_to_distribute.remove(question)
+                        if question in questions_to_distribute:
+                            questions_to_distribute.remove(question)
 
         self.storage.insert_json(MAIN_TOPICS_ID, result)
 
