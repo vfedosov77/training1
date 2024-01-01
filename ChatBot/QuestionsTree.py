@@ -13,6 +13,7 @@ QUESTIONS_PER_REQUEST = 70
 QUESTIONS_FOR_TOPICS_MAPPING = 10
 MAIN_TOPICS_COUNT = 10
 MAIN_TOPICS_ID = "__MAIN_TOPICS__"
+QUESTIONS_FOR_MAIN_TOPICS = QUESTIONS_PER_REQUEST * 2
 
 
 class QuestionsTree:
@@ -39,7 +40,8 @@ class QuestionsTree:
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
-        questions_to_distribute = set(questions2files.keys())
+        all_questions = all_questions[QUESTIONS_FOR_MAIN_TOPICS:]
+        questions_to_distribute = set(all_questions)
 
         while len(result) < MAIN_TOPICS_COUNT * 2:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
@@ -67,8 +69,6 @@ class QuestionsTree:
                         questions_to_distribute.remove(question)
 
         self.storage.insert_json(MAIN_TOPICS_ID, result)
-        return result
-
 
         print("Fond topics:")
         for topic, questions in result:
