@@ -23,6 +23,8 @@ DESCRIPTION_FIELD = "description"
 PATH_FIELD = "path"
 BROCKEN_KIND = "brocken"
 
+PROJECT_DESCRIPTION = "This project is an augmented reality engine for Android devices."
+
 SHORT_FOLDER_DESCRIPTION_SIZE = 3000
 SHORT_FILES_DESCRIPTION_SIZE = 5000
 
@@ -47,7 +49,7 @@ class KnowlegeGraph:
             if QUESTIONS_FIELD in item:
                 questions.update({question: item[PATH_FIELD] for question in self._parse_questions(item[QUESTIONS_FIELD])})
 
-        self.tree = QuestionsTree(questions, self.ai_core)
+        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION)
 
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
@@ -288,7 +290,7 @@ class KnowlegeGraph:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
 
         prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
-            replace("[PROJECT_DESCRIPTION]", "This project is an augmented reality engine for Android devices.").\
+            replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
 
         prompt2 = FILE_QUESTIONS_ADDITIONAL_PROMPT.replace("[FILE_NAME]", file_name)

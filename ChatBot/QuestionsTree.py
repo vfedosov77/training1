@@ -13,10 +13,11 @@ QUESTIONS_PER_REQUEST = 80
 
 
 class QuestionsTree:
-    def __init__(self, questions2files: Dict[str, str], ai_core):
+    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
+        self.proj_description = proj_description
         self._make_tree()
 
     def _make_tree(self):
@@ -46,7 +47,10 @@ class QuestionsTree:
 
     def _get_topics(self, questions: List[str]) -> List[str]:
         questions_with_numbers = self._get_questions_with_numbers(questions)
-        prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
+
+        prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
+            replace("[PROJECT_DESCRIPTION]", self.proj_description)
+
         response = self.ai_core.get_short_conversation_result(prompt, 300)
         topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
         topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
@@ -65,7 +69,7 @@ class QuestionsTree:
         response = self.ai_core.get_short_conversation_result(prompt, 300)
         response = response.split('\n')[0].replace(".", "")
         ids = [int(idx) for idx in response.split(",") if idx.strip()]
-        return [questions[idx] for idx in ids]
+        return [questions[idx - 1] for idx in ids]
 
     def _split_group(self, topic, topics2questions):
         questions: List[str] = topics2questions[topic]
