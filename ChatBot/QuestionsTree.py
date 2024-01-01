@@ -20,6 +20,8 @@ class QuestionsTree:
         self._make_tree()
 
     def _make_tree(self):
+        count = len(self.questions2files)
+        print(f"Questions count: {count}")
         self._group_questions(self.questions2files)
 
     def _group_questions(self, questions2files: Dict[str, str]) -> Dict[str, List[str]]:
