@@ -74,7 +74,8 @@ Below is the list of questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
-Please provide only a few atomic items - up to 7.
+Please provide only a few atomic items - up to 7. 
+Don't provide any info except the topic names which must be as short as possible.
 Please format the result as:
  1. Topic1 
  2. Topic2 
