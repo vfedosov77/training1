@@ -29,6 +29,7 @@ class QuestionsTree:
         result = dict()
 
         all_questions = list(questions2files.keys())
+        random.shuffle(all_questions)
         questions_to_distribute = list(questions2files.keys())
 
         while len(questions_to_distribute) > QUESTIONS_PER_REQUEST:
@@ -53,6 +54,11 @@ class QuestionsTree:
             except Exception:
                 return False
 
+        def remove_extra_info(topic):
+            topic = topic.split(",")[0]
+            topic = topic.split("(")[0]
+            return topic
+
         questions_with_numbers = self._get_questions_with_numbers(questions)
 
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
@@ -63,7 +69,7 @@ class QuestionsTree:
                                                                      check_response,
                                                                      300)
 
-        topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
+        topics = [remove_extra_info(topic) for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
         topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
         print("Found topics: " + str(topics))
         return topics
