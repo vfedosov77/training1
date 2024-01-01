@@ -52,7 +52,7 @@ class QuestionsTree:
         return topics
 
     def _get_questions_with_numbers(self, questions: List[str]):
-        return "".join(str(id + 1) + ". " + quest for id, quest in enumerate(questions) + "n")
+        return "".join(str(id + 1) + ". " + quest + "\n" for id, quest in enumerate(questions))
 
     def _find_questions_related_to_topic(self, questions: List[str], topic):
         questions_with_numbers = self._get_questions_with_numbers(questions)
