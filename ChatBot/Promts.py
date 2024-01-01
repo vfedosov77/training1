@@ -68,7 +68,7 @@ questions regarding the info which is included in '[FILE_NAME]' - not mentioning
 
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. Please analyze these questions and identify a few major topics (2-7) that they broadly fall under. 
-This will help in categorizing and referencing the questions efficiently.
+This will help in categorizing and referencing the questions efficiently. Only topics names are required.
 Below is the list of questions:
 
 [QUESTIONS_WITH_NUMBERS]
@@ -87,7 +87,7 @@ Please provide the list the numbers of the questions that are relevant to that t
 
 [QUESTIONS_WITH_NUMBERS]
 
-The result must be formatted as the comma separated numbers."""
+The result must be formatted as the comma separated numbers. Don't use ranges"""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:
