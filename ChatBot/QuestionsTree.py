@@ -86,7 +86,7 @@ class QuestionsTree:
 
     @staticmethod
     def _get_ids(response):
-        response = response.split('\n')[0].replace(".", "")
+        response = response.split('\n')[0].split('(')[0].replace(".", "")
         ids = [int(idx) for idx in response.split(",") if idx.strip()]
         return ids
 
