@@ -135,7 +135,7 @@ class QuestionsTree:
                                                                      100)
 
         ids = self._get_ids(response)
-        return [questions[idx - 1] for idx in ids]
+        return [questions[idx - 1] for idx in ids if idx <= len(questions)]
 
     def _split_group(self, topic, topics2questions):
         questions: List[str] = topics2questions[topic]
