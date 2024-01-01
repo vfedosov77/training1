@@ -69,6 +69,7 @@ questions regarding the info which is included in '[FILE_NAME]' - not mentioning
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. Please analyze these questions and identify a few major topics (2-7) that they broadly fall under. 
 This will help in categorizing and referencing the questions efficiently. Only topics names are required.
+Topic names should be as atomistic as possible.
 Below is the list of questions:
 
 [QUESTIONS_WITH_NUMBERS]
