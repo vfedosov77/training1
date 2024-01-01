@@ -48,7 +48,9 @@ class QuestionsTree:
         questions_with_numbers = self._get_questions_with_numbers(questions)
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
         response = self.ai_core.get_short_conversation_result(prompt, 1500)
-        topics = [topic.replace(str(id + 1) + ". ") for id, topic in enumerate(response.split("\n"))]
+        topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
+        topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
+        print("Found topics: " + str(topics))
         return topics
 
     def _get_questions_with_numbers(self, questions: List[str]):
