@@ -7,45 +7,63 @@ import torch
 import os
 import pathlib as pl
 import json
-from typing import Dict, List
+from typing import Dict, List, Set
 
 QUESTIONS_PER_REQUEST = 70
+QUESTIONS_FOR_TOPICS_MAPPING = 10
+MAIN_TOPICS_COUNT = 10
+MAIN_TOPICS_ID = "__MAIN_TOPICS__"
 
 
 class QuestionsTree:
-    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description):
+    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description, storage: JSONDataStorage):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
         self.proj_description = proj_description
+        self.storage: JSONDataStorage = storage
         self._make_tree()
 
     def _make_tree(self):
         count = len(self.questions2files)
         print(f"Questions count: {count}")
-        self._group_questions(self.questions2files)
+        questions = self._group_questions(self.questions2files)
 
     def _group_questions(self, questions2files: Dict[str, str]) -> Dict[str, List[str]]:
+        result = self.storage.get_json(MAIN_TOPICS_ID)
+
+        if result is not None:
+            return result
+
         result = dict()
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
         questions_to_distribute = set(questions2files.keys())
 
-        while len(questions_to_distribute) > QUESTIONS_PER_REQUEST:
+        while len(result) < MAIN_TOPICS_COUNT * 2:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
             topics = self._get_topics(questions_sample)
 
             # TODO: optimize it - _get_questions_with_numbers is called for each topic
             for topic in topics:
+                topics_questions = []
+
                 for i in range(0, len(all_questions), QUESTIONS_PER_REQUEST):
                     subset = all_questions[i: i + QUESTIONS_PER_REQUEST]
 
                     related = self._find_questions_related_to_topic(subset, topic)
-                    result[topic] = related
+                    topics_questions.extend(related)
+
+                if len(all_questions) / 2 > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
+                    result[topic] = topics_questions
 
                     for question in related:
                         questions_to_distribute.remove(question)
+
+        self.storage.insert_json(MAIN_TOPICS_ID, result)
+        return result
+
 
         print("Fond topics:")
         for topic, questions in result:
