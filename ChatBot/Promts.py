@@ -74,7 +74,8 @@ Below is the list of questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
- Please format the result as:
+Please provide only a few atomic items - up to 7.
+Please format the result as:
  1. Topic1 
  2. Topic2 
  ..."""
