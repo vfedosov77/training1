@@ -63,6 +63,7 @@ class QuestionsTree:
             replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
 
         response = self.ai_core.get_short_conversation_result(prompt, 300)
+        response = response.split('\n')[0].replace(".", "")
         ids = [int(idx) for idx in response.split(",") if idx.strip()]
         return [questions[idx] for idx in ids]
 

@@ -84,14 +84,16 @@ TOPICS_QUSTIONS_PROMPT = """I need to organize a set of questions related to a s
 topics. I already found the topics and now I need to find all the related questions for each topic. 
 Here is one of the topics:
 
-[TOPIC]
+'[TOPIC]'
 
 Please provide the list the numbers of the questions that are relevant to that topic. Don't use ranges in the result.
 These are the questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
-The result must be formatted as the comma separated numbers. Don't use ranges"""
+Please mention only the questions which are clearly related tot he topic.
+The result must be formatted as the comma separated numbers.
+Don't use ranges."""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:
