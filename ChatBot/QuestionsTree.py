@@ -30,7 +30,7 @@ class QuestionsTree:
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
-        questions_to_distribute = list(questions2files.keys())
+        questions_to_distribute = set(questions2files.keys())
 
         while len(questions_to_distribute) > QUESTIONS_PER_REQUEST:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
@@ -43,6 +43,13 @@ class QuestionsTree:
 
                     related = self._find_questions_related_to_topic(subset, topic)
                     result[topic] = related
+
+                    for question in related:
+                        questions_to_distribute.remove(question)
+
+        print("Fond topics:")
+        for topic, questions in result:
+            print(topic + ": " + str(questions))
 
         return result
 

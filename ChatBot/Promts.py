@@ -94,7 +94,7 @@ These are the questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
-Please mention only the questions which are clearly related tot he topic.
+Please mention only the questions which are clearly related to the topic.
 Don't use ranges.
 The result must be formatted as the comma separated numbers.
 If there are any doubts that the question and the topic are related - don't include that question's number."""
