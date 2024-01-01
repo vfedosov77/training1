@@ -32,19 +32,24 @@ class QuestionsTree:
 
     def _group_questions(self, questions2files: Dict[str, str]) -> Dict[str, List[str]]:
         result = self.storage.get_json(MAIN_TOPICS_ID)
+        result_required_size = MAIN_TOPICS_COUNT * 2
 
         if result is not None:
-            return result
+            print("Loaded topics:")
+            for topic, questions in result:
+                print(topic + ": " + str(questions))
 
-        result = dict()
+            if len(result) >= result_required_size:
+                return result
+        else:
+            result = dict()
 
         all_questions = list(questions2files.keys())
         random.shuffle(all_questions)
         questions_to_distribute = set(all_questions[:(QUESTIONS_FOR_MAIN_TOPICS * 2) // 3])
         all_questions = all_questions[:QUESTIONS_FOR_MAIN_TOPICS]
 
-
-        while len(result) < MAIN_TOPICS_COUNT * 2:
+        while len(result) < result_required_size:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
             topics = self._get_topics(questions_sample)
 
@@ -70,7 +75,7 @@ class QuestionsTree:
                         if question in questions_to_distribute:
                             questions_to_distribute.remove(question)
 
-        self.storage.insert_json(MAIN_TOPICS_ID, result)
+                    self.storage.insert_json(MAIN_TOPICS_ID, result)
 
         print("Fond topics:")
         for topic, questions in result:
