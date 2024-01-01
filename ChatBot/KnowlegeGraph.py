@@ -1,5 +1,6 @@
 from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
+from ChatBot.QuestionsTree import QuestionsTree
 
 import torch
 import os
@@ -34,8 +35,19 @@ class KnowlegeGraph:
         self.ai_core = ai_core
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
+        self.tree = None
 
         #self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
+
+    def get_graph(self):
+        items = self.storage.get_all()
+        questions = dict()
+
+        for item in items:
+            if QUESTIONS_FIELD in item:
+                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD]})
+
+        self.tree = QuestionsTree(questions, self.ai_core)
 
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))

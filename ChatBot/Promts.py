@@ -65,3 +65,33 @@ He can ask also questions related to extending or integrating the code, or any s
 FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told user is not familiar with the file name and the classes/functions names 
 of that file - he knows the project and he only starts to investigate the implementation. But please generate only 
 questions regarding the info which is included in '[FILE_NAME]' - not mentioning the name of the file. """
+
+GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
+topics. Each question is numbered for ease of reference. Below is the list of numbered questions:
+
+[QUESTIONS_WITH_NUMBERS]
+
+Please analyze these questions and identify a few major topics (2 or 3) that they broadly fall under.  
+This will help in categorizing and referencing the questions efficiently. Please format the result as:
+ 1. Topic1 
+ 2. Topic2 
+ ..."""
+
+TOPICS_QUSTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
+topics. I already found the topics and now I need to find all the related questions for each topic. Here is one of the topics:
+
+[TOPIC]
+
+Please provide the list the numbers of the questions that are relevant to that topic. These are the questions:
+
+[QUESTIONS_WITH_NUMBERS]
+
+The result must be formatted as the comma separated numbers."""
+
+TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
+These topic contains the following questions:
+
+[QUESTIONS_WITH_NUMBERS]
+
+Please provide the list of the subtopics."""
+
