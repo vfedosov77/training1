@@ -221,7 +221,7 @@ class QuestionsTree:
         response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
                                                                      ONLY_COMMA_SEPARATED_PROMPT,
                                                                      check_response,
-                                                                     100)
+                                                                     50)
 
         ids = self._get_ids(response)
         return [questions[idx - 1] for idx in ids if idx <= len(questions)]
