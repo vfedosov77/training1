@@ -119,7 +119,7 @@ Which topic as of your understanding is the most relevant for the following ques
 
 [QUESTION]
 
-The result format as the number of the topic - it will be used by an automatic parser. Please write no any additional info."""
+THE RESULT FORMAT AS ONLY THE ONE NUMBER  of the most relevant topic - it will be used by an automatic parser. WRITE NO ADDITIONAL INFO!!!"""
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY ONE NUMBER!!!"
 
