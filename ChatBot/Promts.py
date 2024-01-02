@@ -110,3 +110,16 @@ These topic contains the following questions:
 
 Please provide the list of the subtopics."""
 
+TOPIC_FOR_QUESTION_PROMPT = """I am trying to find a related question in a big FAQ for a software project which is described as '[PROJECT_DESCRIPTION]'.
+I see the following main topics in that FAQ:
+
+[TOPICS_WITH_NUMBERS]
+
+Which topic as of your understanding is the most relevant for the following question:
+
+[QUESTION]
+
+Please provide only the number of the topic as the answer."""
+
+ONLY_NUMBER_PROMPT = "Please give only the number of the topic"
+

@@ -12,7 +12,9 @@ from typing import Dict, List, Set
 QUESTIONS_PER_REQUEST = 70
 QUESTIONS_FOR_TOPICS_MAPPING = 10
 MAIN_TOPICS_COUNT = 10
-MAIN_TOPICS_ID = "__MAIN_TOPICS__"
+FOUND_TOPICS_ID = "__MAIN_TOPICS__"
+MAIN_TOPICS_ID = "_MAIN_TOPICS_"
+
 QUESTIONS_FOR_MAIN_TOPICS = QUESTIONS_PER_REQUEST * 2
 
 
@@ -24,20 +26,65 @@ class QuestionsTree:
         self.proj_description = proj_description
         self.storage: JSONDataStorage = storage
         self._make_tree()
+        self.main_topics: Dict[str, List[str]] = None
+
+    def get_topic_for_question(self, question: str) -> str:
+        def check(answer):
+            return str.isnumeric(answer)
+
+        topics = self.main_topics.keys()
+
+        prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
+            replace("[TOPICS_WITH_NUMBERS]", self._get_items_with_numbers(topics))
+
+        result = self.ai_core.get_1_or_2_steps_conversation_result(prompt, ONLY_NUMBER_PROMPT, check, 5)
+
+        try:
+            topic_id = int(result)
+        except ValueError:
+            print("Cannot parse topic_id: " + (result if result else "None"))
+            return None
+
+        return topics[topic_id]
 
     def _make_tree(self):
         count = len(self.questions2files)
         print(f"Questions count: {count}")
-        questions = self._group_questions(self.questions2files)
+        topics2questions = self._group_questions(self.questions2files)
+        self._fill_main_topics(topics2questions)
+
+    def _fill_main_topics(self, topics2questions):
+        self.main_topics = self.storage.get_json(MAIN_TOPICS_ID)
+
+        if self.main_topics is not None:
+            return
+
+        self.main_topics = topics2questions
+        scores = {topic: 0 for topic in topics2questions.keys()}
+
+        for topic, questions in topics2questions.items():
+            for question in questions[:QUESTIONS_FOR_TOPICS_MAPPING]:
+                detected = self.get_topic_for_question(question)
+
+                if detected == topic:
+                    scores[topic] += 1
+                else:
+                    scores[detected] -= 1
+
+        topics2scores = [(topic, score) for topic, score in scores.items()]
+        list.sort(topics2scores, key=lambda x: x[1], reverse=True)
+        self.main_topics = {topic: topics2questions[topic] for topic in topics2scores[:MAIN_TOPICS_COUNT]}
+        print("Main topics:")
+        self._print_topics(self.main_topics)
+        self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
 
     def _group_questions(self, questions2files: Dict[str, str]) -> Dict[str, List[str]]:
-        result = self.storage.get_json(MAIN_TOPICS_ID)
+        result = self.storage.get_json(FOUND_TOPICS_ID)
         result_required_size = MAIN_TOPICS_COUNT * 2
 
         if result is not None:
             print("Loaded topics:")
-            for topic, questions in result.items():
-                print(topic + ": " + str(questions))
+            self._print_topics(result)
 
             if len(result) >= result_required_size:
                 return result
@@ -53,7 +100,7 @@ class QuestionsTree:
             questions_sample = random.sample(questions_to_distribute, QUESTIONS_PER_REQUEST)
             topics = self._get_topics(questions_sample)
 
-            # TODO: optimize it - _get_questions_with_numbers is called for each topic
+            # TODO: optimize it - _get_items_with_numbers is called for each topic
             for topic in topics:
                 topics_questions = []
                 too_wide = False
@@ -69,22 +116,24 @@ class QuestionsTree:
                         print("Too many related items - the topic is not distinct")
                         break
 
-                if not too_wide and len(all_questions) // 3 > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
+                if not too_wide and (len(all_questions) // 3) > len(topics_questions) >= QUESTIONS_FOR_TOPICS_MAPPING:
                     result[topic] = topics_questions
 
                     for question in related:
                         if question in questions_to_distribute:
                             questions_to_distribute.remove(question)
 
-                    self.storage.insert_json(MAIN_TOPICS_ID, result)
+                    self.storage.insert_json(FOUND_TOPICS_ID, result)
 
                     print("Found " + str(len(result)) + " topics.")
 
-        print("Fond topics:")
-        for topic, questions in result.items():
-            print(topic + ": " + str(questions))
-
+        print("Detected topics:")
+        self._print_topics(result)
         return result
+
+    def _print_topics(self, topics):
+        for topic, questions in topics.items():
+            print(topic + ": " + str(questions))
 
     def _get_topics(self, questions: List[str]) -> List[str]:
         def check_response(response):
@@ -99,7 +148,7 @@ class QuestionsTree:
             topic = topic.split("(")[0]
             return topic
 
-        questions_with_numbers = self._get_questions_with_numbers(questions)
+        questions_with_numbers = self._get_items_with_numbers(questions)
 
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
             replace("[PROJECT_DESCRIPTION]", self.proj_description)
@@ -114,8 +163,8 @@ class QuestionsTree:
         print("Found topics: " + str(topics))
         return topics
 
-    def _get_questions_with_numbers(self, questions: List[str]):
-        return "".join(str(id + 1) + ". " + quest + "\n" for id, quest in enumerate(questions))
+    def _get_items_with_numbers(self, items: List[str]):
+        return "".join(str(id + 1) + ". " + quest + "\n" for id, quest in enumerate(items))
 
     @staticmethod
     def _get_ids(response):
@@ -132,7 +181,7 @@ class QuestionsTree:
 
             return True
 
-        questions_with_numbers = self._get_questions_with_numbers(questions)
+        questions_with_numbers = self._get_items_with_numbers(questions)
 
         prompt = TOPICS_QUSTIONS_PROMPT.replace("[TOPIC]", topic).\
             replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
