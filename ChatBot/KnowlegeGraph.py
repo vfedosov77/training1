@@ -47,7 +47,7 @@ class KnowlegeGraph:
 
         for item in items:
             if QUESTIONS_FIELD in item:
-                questions.update({question: item[PATH_FIELD] for question in self._parse_questions(item[QUESTIONS_FIELD])})
+                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD]})
 
         self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage)
 
@@ -261,17 +261,6 @@ class KnowlegeGraph:
     def _generate_file_questions(self, path, short_request=False):
         file_name = os.path.basename(path)
 
-        def check_response(response: str):
-            if response.find(file_name) != -1:
-                return False
-
-            class_name = file_name.replace("_", "").lower()
-
-            if response.lower().find(class_name) != -1:
-                return False
-
-            return True
-
         file_id = self._get_id(path)
         file_json = self.storage.get_json(file_id)
 
@@ -291,9 +280,9 @@ class KnowlegeGraph:
             replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
         try:
-            response = self.ai_core.get_generated_text(prompt, check_response, 250)
+            response = self.ai_core.get_generated_text(prompt, 250)
 
-            file_json[QUESTIONS_FIELD] = response
+            file_json[QUESTIONS_FIELD] = self._parse_questions(response)
             self.storage.insert_json(file_id, file_json)
         except RuntimeError as e:
             if not short_request:
