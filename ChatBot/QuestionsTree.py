@@ -79,7 +79,7 @@ class QuestionsTree:
 
         topics2scores = [(topic, score) for topic, score in scores.items()]
         list.sort(topics2scores, key=lambda x: x[1], reverse=True)
-        self.main_topics = {topic: topics2questions[topic] for topic in topics2scores[:MAIN_TOPICS_COUNT]}
+        self.main_topics = {topic: topics2questions[topic] for topic, _ in topics2scores[:MAIN_TOPICS_COUNT]}
         print("Main topics:")
         self._print_topics(self.main_topics)
         self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
