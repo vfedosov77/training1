@@ -35,7 +35,8 @@ class QuestionsTree:
         topics = self.main_topics.keys()
 
         prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
-            replace("[TOPICS_WITH_NUMBERS]", self._get_items_with_numbers(topics))
+            replace("[TOPICS_WITH_NUMBERS]", self._get_items_with_numbers(topics)).\
+            replace("[QUESTION]", question)
 
         result = self.ai_core.get_1_or_2_steps_conversation_result(prompt, ONLY_NUMBER_PROMPT, check, 5)
 
