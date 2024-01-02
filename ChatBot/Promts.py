@@ -119,7 +119,7 @@ Which topic as of your understanding is the most relevant for the following ques
 
 [QUESTION]
 
-Please provide only the number of the topic as the answer."""
+The result format as the number of the topic. Please write no any additional info."""
 
-ONLY_NUMBER_PROMPT = "Please give only the number of the topic"
+ONLY_NUMBER_PROMPT = "Please write only the number of the topic"
 
