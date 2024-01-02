@@ -89,7 +89,7 @@ class QuestionsTree:
         self._print_topics(self.main_topics)
         self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
 
-        all_questions = set(itertools.chain.from_iterable((q for q in topics2questions.values())))
+        all_questions = set(self.questions2files.keys())
         all_questions -= set(distributed_questions)
 
         self._distribute_questions(all_questions)
