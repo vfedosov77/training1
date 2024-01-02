@@ -239,7 +239,8 @@ class KnowlegeGraph:
         children = []
 
         for child in os.listdir(path):
-            item_json = self.storage.get_json(self._get_id(child))
+            child_path = os.path.join(path, child)
+            item_json = self.storage.get_json(self._get_id(child_path))
 
             if item_json:
                 children.append(item_json)
