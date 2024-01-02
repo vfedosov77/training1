@@ -30,16 +30,13 @@ class QuestionsTree:
         self.main_topics: Dict[str, List[str]] = None
 
     def get_topic_for_question(self, question: str) -> str:
-        def check(answer):
-            return str.isnumeric(answer)
-
         topics = list(self.main_topics.keys())
 
         prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
             replace("[TOPICS_WITH_NUMBERS]", self._get_items_with_numbers(topics)).\
             replace("[QUESTION]", question)
 
-        result = self.ai_core.get_1_or_2_steps_conversation_result(prompt, ONLY_NUMBER_PROMPT, check, 2)
+        result = self.ai_core.get_generated_text(prompt, 2)
 
         try:
             topic_id = int(result.split(".")[0].split(",")[0])

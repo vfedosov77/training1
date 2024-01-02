@@ -110,16 +110,10 @@ These topic contains the following questions:
 
 Please provide the list of the subtopics."""
 
-TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as '[PROJECT_DESCRIPTION]'.
-There are the following main topics in that FAQ:
-
+TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as 'This project is an augmented reality engine for Android devices.'.
+There are the following main topics in the FAQ of the project which is described as "[PROJECT_DESCRIPTION]".
 [TOPICS_WITH_NUMBERS]
-
-Which topic as of your understanding is the most relevant for the following question:
-
-[QUESTION]
-
-THE RESULT FORMAT AS ONLY THE ONE NUMBER  of the most relevant topic - it will be used by an automatic parser. WRITE NO ADDITIONAL INFO!!!"""
+The best topic number to put our new question "[QUESTION]" is: """
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY ONE NUMBER!!!"
 
