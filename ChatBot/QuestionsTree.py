@@ -8,6 +8,7 @@ import os
 import pathlib as pl
 import json
 from typing import Dict, List, Set
+import itertools
 
 QUESTIONS_PER_REQUEST = 70
 QUESTIONS_FOR_TOPICS_MAPPING = 10
@@ -46,7 +47,7 @@ class QuestionsTree:
             print("Cannot parse topic_id: " + (result if result else "None"))
             return None
 
-        return topics[topic_id]
+        return topics[topic_id] if topic_id < len(topics) else None
 
     def _make_tree(self):
         count = len(self.questions2files)
@@ -62,6 +63,8 @@ class QuestionsTree:
 
         scores = {topic: 0 for topic in topics2questions.keys()}
         topics = list(topics2questions.keys())
+        topics2own_questions = {t: [] for t in topics}
+        distributed_questions = set()
 
         for topic, questions in topics2questions.items():
             for question in questions[:QUESTIONS_FOR_TOPICS_MAPPING]:
@@ -74,19 +77,42 @@ class QuestionsTree:
 
                 if detected == topic:
                     scores[topic] += 1
+                    topics2own_questions[topic].append(question)
+                    distributed_questions.add(question)
                 elif detected:
                     scores[detected] -= 1
 
         topics2scores = [(topic, score) for topic, score in scores.items()]
         list.sort(topics2scores, key=lambda x: x[1], reverse=True)
-        self.main_topics = {topic: topics2questions[topic] for topic, _ in topics2scores[:MAIN_TOPICS_COUNT]}
+        self.main_topics = {topic: topics2own_questions[topic] for topic, _ in topics2scores[:MAIN_TOPICS_COUNT]}
         print("Main topics:")
         self._print_topics(self.main_topics)
         self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
 
+        all_questions = set(itertools.chain.from_iterable((q for q in topics2questions.values())))
+        all_questions -= set(distributed_questions)
+
+        self._distribute_questions(all_questions)
+
+        self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
+
+    def _distribute_questions(self, questions):
+        self.main_topics["Other"] = []
+
+        for question in questions:
+            detected = self.get_topic_for_question(question)
+
+            if detected:
+                self.main_topics[detected].append(question)
+            else:
+                self.main_topics["Other"].append(question)
+
+        print("Questions are distributed:")
+        self._print_topics(self.main_topics)
+
     def _group_questions(self, questions2files: Dict[str, str]) -> Dict[str, List[str]]:
         result = self.storage.get_json(FOUND_TOPICS_ID)
-        result_required_size = MAIN_TOPICS_COUNT * 2
+        result_required_size = MAIN_TOPICS_COUNT * 3
 
         if result is not None:
             print("Loaded topics:")
