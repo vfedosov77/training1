@@ -60,16 +60,21 @@ class QuestionsTree:
         if self.main_topics is not None:
             return
 
-        self.main_topics = topics2questions
         scores = {topic: 0 for topic in topics2questions.keys()}
+        topics = list(topics2questions.keys())
 
         for topic, questions in topics2questions.items():
             for question in questions[:QUESTIONS_FOR_TOPICS_MAPPING]:
+                random.sample(topics)
+                topics.remove(topic)
+                topics.insert(0, topic)
+                self.main_topics = {t: topics2questions[t] for t in topics[:MAIN_TOPICS_COUNT]}
+
                 detected = self.get_topic_for_question(question)
 
                 if detected == topic:
                     scores[topic] += 1
-                else:
+                elif detected:
                     scores[detected] -= 1
 
         topics2scores = [(topic, score) for topic, score in scores.items()]
