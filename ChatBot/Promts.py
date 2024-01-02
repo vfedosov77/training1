@@ -46,7 +46,7 @@ Here is the full code of one of the file of that folder "[File Name]":
 
 [SOURCES]
 
-I was forced to analyse the code of that file because it is important for the understanding of the following essential topics of the project functionality: """
+I was forced to analyse the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here): """
 
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. The whole project description: '[PROJECT_DESCRIPTION]'
