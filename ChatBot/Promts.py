@@ -40,18 +40,13 @@ rather than elaborating on individual file contents.
 Please don't mention each file - we need only the functionality of the whole directory."""
 
 FILES_QUESTIONS_PROMPT = \
-"""We are creating FAQ for a software project which can be useful for developers and management of that project. The project is described as '[PROJECT_DESCRIPTION]'. 
-We are making a list of possible questions taling into account main details in each sorce file of project.
-Now we analyse a folder which is described as '[PARENT_FOLDER_DESCRIPTION]'.
+"""I am working on the project which can be described as '[PROJECT_DESCRIPTION]'. 
+In that project there is a folder which can be described as '[PARENT_FOLDER_DESCRIPTION]'.
 Here is the full code of one of the file of that folder "[File Name]":
 
 [SOURCES]
 
 I was forced to analyse the code of that file because it is important for the understanding of the following essential topics of the project functionality: """
-
-FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told user is not familiar with the file name and the classes/functions names 
-of that file - he knows the project and he only starts to investigate the implementation. But please generate only 
-questions regarding the info which is included in '[FILE_NAME]' - not mentioning the name of the file. """
 
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. The whole project description: '[PROJECT_DESCRIPTION]'
