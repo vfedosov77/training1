@@ -65,7 +65,7 @@ class QuestionsTree:
 
         for topic, questions in topics2questions.items():
             for question in questions[:QUESTIONS_FOR_TOPICS_MAPPING]:
-                random.sample(topics)
+                random.shuffle(topics)
                 topics.remove(topic)
                 topics.insert(0, topic)
                 self.main_topics = {t: topics2questions[t] for t in topics[:MAIN_TOPICS_COUNT]}
