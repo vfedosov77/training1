@@ -110,8 +110,8 @@ These topic contains the following questions:
 
 Please provide the list of the subtopics."""
 
-TOPIC_FOR_QUESTION_PROMPT = """I am trying to find a related question in a big FAQ for a software project which is described as '[PROJECT_DESCRIPTION]'.
-I see the following main topics in that FAQ:
+TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as '[PROJECT_DESCRIPTION]'.
+There are the following main topics in that FAQ:
 
 [TOPICS_WITH_NUMBERS]
 
@@ -119,7 +119,7 @@ Which topic as of your understanding is the most relevant for the following ques
 
 [QUESTION]
 
-The result format as the number of the topic. Please write no any additional info."""
+The result format as the number of the topic - it will be used by an automatic parser. Please write no any additional info."""
 
-ONLY_NUMBER_PROMPT = "Please write only the number of the topic"
+ONLY_NUMBER_PROMPT = "WRITE ONLY ONE NUMBER!!!"
 
