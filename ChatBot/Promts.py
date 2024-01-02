@@ -40,27 +40,14 @@ rather than elaborating on individual file contents.
 Please don't mention each file - we need only the functionality of the whole directory."""
 
 FILES_QUESTIONS_PROMPT = \
-"""We are creating a structured knowledge base for a software project. 
-User will use it to get answers for question about the project. 
-Now we are creating the set of possible questions of users to have something like a big FAQ in our base. 
-Those questions we must imagine on our own.
-We are making a list of possible questions for the details in each source file of project.
-I am providing the full code of the file [FILE_NAME], along with brief descriptions of its parent folder as generated 
-in the previous step. Here is the full code of [FILE_NAME]:
+"""We are creating FAQ for a software project which can be useful for developers and management of that project. The project is described as '[PROJECT_DESCRIPTION]'. 
+We are making a list of possible questions taling into account main details in each sorce file of project.
+Now we analyse a folder which is described as '[PARENT_FOLDER_DESCRIPTION]'.
+Here is the full code of one of the file of that folder "[File Name]":
 
 [SOURCES]
 
-
-The whole project description: '[PROJECT_DESCRIPTION]'
-
-And here are the summaries for the parent folder: [PARENT_FOLDER_DESCRIPTION]
-
-Based on this information, generate a list of potential questions of the project user which can touch the details 
-mentioned in the provided '[FILE_NAME]'. 
-That can be any project-related question which answers require to see that file. 
-Please take into account that user probably don't know about that file and the classes/functions inside of it. 
-He probably has a related bug or he investigates the project asking questions. 
-He can ask also questions related to extending or integrating the code, or any specific implementation details etc."""
+I was forced to analyse the code of that file because it is important for the understanding of the following essential topics of the project functionality: """
 
 FILE_QUESTIONS_ADDITIONAL_PROMPT = """as I told user is not familiar with the file name and the classes/functions names 
 of that file - he knows the project and he only starts to investigate the implementation. But please generate only 
@@ -110,8 +97,8 @@ These topic contains the following questions:
 
 Please provide the list of the subtopics."""
 
-TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as 'This project is an augmented reality engine for Android devices.'.
-There are the following main topics in the FAQ of the project which is described as "[PROJECT_DESCRIPTION]".
+TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as "[PROJECT_DESCRIPTION]".
+There are the following main topics in the FAQ of that project:".
 [TOPICS_WITH_NUMBERS]
 The best topic number to put our new question "[QUESTION]" is: """
 

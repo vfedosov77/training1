@@ -96,9 +96,7 @@ class KnowlegeGraph:
             return []
 
         questions_str = questions_str[idx:]
-        return [q.replace(str(q_id + 1) + ". ", "") for q_id, q in enumerate(questions_str.split("\n"))]
-
-
+        return [q.split(".")[1] for q in questions_str.split("\n") if q and str.isnumeric(q[0]) and 0 < q.find(".") < 3]
 
     def _create_questions(self, project_path):
         def dfs(path):
@@ -280,24 +278,20 @@ class KnowlegeGraph:
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        if QUESTIONS_FIELD in file_json:
-            print("Found questions for the file " + path)
-            return
+        #if QUESTIONS_FIELD in file_json:
+        #    print("Found questions for the file " + path)
+        #    return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 
         if short_request:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
 
-        prompt1 = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
+        prompt = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
             replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
             replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
-
-        prompt2 = FILE_QUESTIONS_ADDITIONAL_PROMPT.replace("[FILE_NAME]", file_name)
-
         try:
-            response = self.ai_core.get_1_or_2_steps_conversation_result(
-                prompt1, prompt2, check_response, 2000)
+            response = self.ai_core.get_generated_text(prompt, check_response, 250)
 
             file_json[QUESTIONS_FIELD] = response
             self.storage.insert_json(file_id, file_json)
