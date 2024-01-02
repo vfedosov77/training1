@@ -103,6 +103,9 @@ class KnowlegeGraph:
             for child in os.listdir(path):
                 child_path = os.path.join(path, child)
 
+                if "opencv-2.4.6.1" in child_path:
+                    continue
+
                 if os.path.isdir(child_path):
                     dfs(child_path)
                 else:
@@ -267,9 +270,9 @@ class KnowlegeGraph:
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        #if QUESTIONS_FIELD in file_json:
-        #    print("Found questions for the file " + path)
-        #    return
+        if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
+            print("Found questions for the file " + path)
+            return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 

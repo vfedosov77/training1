@@ -42,11 +42,11 @@ Please don't mention each file - we need only the functionality of the whole dir
 FILES_QUESTIONS_PROMPT = \
 """I am working on the project which can be described as '[PROJECT_DESCRIPTION]'. 
 In that project there is a folder which can be described as '[PARENT_FOLDER_DESCRIPTION]'.
-Here is the full code of one of the file of that folder "[File Name]":
+Here is the full code of one of the file of that folder "[FILE_NAME]":
 
 [SOURCES]
 
-I was forced to analyse the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here): """
+I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here): """
 
 GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. The whole project description: '[PROJECT_DESCRIPTION]'
