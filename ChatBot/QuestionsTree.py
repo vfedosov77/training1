@@ -44,7 +44,7 @@ class QuestionsTree:
             print("Cannot parse topic_id: " + (result if result else "None"))
             return None
 
-        return topics[topic_id] if topic_id < len(topics) else None
+        return topics[topic_id - 1] if topic_id < len(topics) else None
 
     def _make_tree(self):
         count = len(self.questions2files)
