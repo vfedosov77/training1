@@ -40,7 +40,7 @@ class QuestionsTree:
         result = self.ai_core.get_1_or_2_steps_conversation_result(prompt, ONLY_NUMBER_PROMPT, check, 5)
 
         try:
-            topic_id = int(result)
+            topic_id = int(result.split(".")[0])
         except ValueError:
             print("Cannot parse topic_id: " + (result if result else "None"))
             return None
