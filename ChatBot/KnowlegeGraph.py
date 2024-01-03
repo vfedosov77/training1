@@ -24,7 +24,7 @@ DESCRIPTION_FIELD = "description"
 PATH_FIELD = "path"
 BROCKEN_KIND = "brocken"
 
-PROJECT_DESCRIPTION = "This project is an augmented reality engine for Android devices."
+PROJECT_DESCRIPTION = "Augmented reality engine for Android devices."
 
 SHORT_FOLDER_DESCRIPTION_SIZE = 3000
 SHORT_FILES_DESCRIPTION_SIZE = 5000

@@ -46,13 +46,15 @@ Here is the full code of one of the file of that folder "[FILE_NAME]":
 
 [SOURCES]
 
-I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here): """
+I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here):
+"""
 
 GROUP_QUESTIONS_PROMPT = """I am creating FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'
 The project source code contains functionality related to the following essential topics:
 [QUESTIONS_WITH_NUMBERS]
 Now I need to unite those topics into bigger items which will be the main items of FAQ - I plan to have 7 main items.
-I see the following main items:"""
+I see the following main items:
+"""
 
 TOPICS_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. The project can be described as '[PROJECT_DESCRIPTION]'.
@@ -75,10 +77,8 @@ These topic contains the following questions:
 
 Please provide the list of the subtopics."""
 
-TOPIC_FOR_QUESTION_PROMPT = """We are trying to find a related question in a big FAQ for a software project which is described as "[PROJECT_DESCRIPTION]".
-There are the following main topics in the FAQ of that project:".
+TOPIC_FOR_QUESTION_PROMPT = """We have the following main topics in our FAQ for the software project "[PROJECT_DESCRIPTION]":
 [TOPICS_WITH_NUMBERS]
-The best topic number to put our new question "[QUESTION]" is: """
+Your subtopic "[QUESTION]" I would put into the main topic number """
 
-ONLY_NUMBER_PROMPT = "WRITE ONLY ONE NUMBER!!!"
 
