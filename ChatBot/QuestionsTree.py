@@ -39,13 +39,16 @@ class QuestionsTree:
             replace("[QUESTION]", question.strip())
 
         result = self.ai_core.get_generated_text(prompt, 2)
+        result = result.strip()[:2]
 
-        try:
-            topic_id = int((result.split(".")[0].split(",")[0]).strip())
-        except ValueError:
+        if not str.isnumeric(result):
+            result = result[0]
+
+        if not str.isnumeric(result):
             print("Cannot parse topic_id: " + (result if result else "None"))
             return None
 
+        topic_id = int(result)
         return topics[topic_id - 1] if topic_id < len(topics) else None
 
     def _fill_topics(self):
