@@ -2,6 +2,7 @@ import random
 
 from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
+from ChatBot.Utils import *
 
 import torch
 import os
@@ -111,7 +112,7 @@ class QuestionsTree:
         result = self.storage.get_json(FOUND_TOPICS_ID)
         result_required_size = MAIN_TOPICS_COUNT * 3
 
-        if result is not None:
+        if False and result is not None:
             print("Loaded topics:")
             self._print_topics(result)
 
@@ -165,13 +166,6 @@ class QuestionsTree:
             print(topic + ": " + str(questions))
 
     def _get_topics(self, questions: List[str]) -> List[str]:
-        def check_response(response):
-            try:
-                topics = [topic for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
-                return len(topics) <= 7
-            except Exception:
-                return False
-
         def remove_extra_info(topic):
             topic = topic.split(",")[0]
             topic = topic.split("(")[0]
@@ -182,13 +176,8 @@ class QuestionsTree:
         prompt = GROUP_QUESTIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
             replace("[PROJECT_DESCRIPTION]", self.proj_description)
 
-        response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
-                                                                     ONLY_A_FEW_ITEMS_PROMPT,
-                                                                     check_response,
-                                                                     100)
-
-        topics = [remove_extra_info(topic) for topic in response.split("\n") if topic and str.isdecimal(topic[0])]
-        topics = [topic.replace(str(id + 1) + ". ", "") for id, topic in enumerate(topics)]
+        response = self.ai_core.get_generated_text(prompt, 60)
+        topics = [remove_extra_info(topic) for topic in parse_numbered_items(response)]
         print("Found topics: " + str(topics))
         return topics
 

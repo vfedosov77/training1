@@ -40,7 +40,7 @@ rather than elaborating on individual file contents.
 Please don't mention each file - we need only the functionality of the whole directory."""
 
 FILES_QUESTIONS_PROMPT = \
-"""I am working on the project which can be described as '[PROJECT_DESCRIPTION]'. 
+"""I am working on a project which can be described as '[PROJECT_DESCRIPTION]'. 
 In that project there is a folder which can be described as '[PARENT_FOLDER_DESCRIPTION]'.
 Here is the full code of one of the file of that folder "[FILE_NAME]":
 
@@ -48,22 +48,11 @@ Here is the full code of one of the file of that folder "[FILE_NAME]":
 
 I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here): """
 
-GROUP_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
-topics. The whole project description: '[PROJECT_DESCRIPTION]'
-
-Please analyze these questions and identify a few major topics (2-7) that they broadly fall under. 
-This will help in categorizing and referencing the questions efficiently. Only topics names are required.
-Topic names should be as atomistic as possible.
-Below is the list of questions:
-
+GROUP_QUESTIONS_PROMPT = """I am creating FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'
+The project source code contains functionality related to the following essential topics:
 [QUESTIONS_WITH_NUMBERS]
-
-Please provide only a few atomic items - up to 7. 
-Don't provide any info except the topic names which must be as short as possible.
-Please format the result as:
- 1. Topic1 
- 2. Topic2 
- ..."""
+Now I need to unite those topics into bigger items which will be the main items of FAQ - I plan to have 7 main items.
+I see the following main items:"""
 
 TOPICS_QUSTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. I already found the topics and now I need to find all the related questions for each topic. 
@@ -82,8 +71,6 @@ The result must be formatted as the comma separated numbers.
 If there are any doubts that a question and the topic are related - don't include that question's number."""
 
 ONLY_COMMA_SEPARATED_PROMPT = """Please write only comma separated numbers of questions in your response."""
-
-ONLY_A_FEW_ITEMS_PROMPT = """Please write only up to 7 main topics in your response."""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:

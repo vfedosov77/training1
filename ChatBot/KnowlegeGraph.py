@@ -1,6 +1,7 @@
 from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree import QuestionsTree
+from ChatBot.Utils import *
 
 import torch
 import os
@@ -86,17 +87,6 @@ class KnowlegeGraph:
 
         dfs(project_path)
         self._create_questions(project_path)
-
-    @staticmethod
-    def _parse_questions(questions_str):
-        idx = questions_str.find("1. ")
-
-        if idx == -1:
-            print("Error!!!!!!!!!!!!!!!!!!!!: cannot find the first question")
-            return []
-
-        questions_str = questions_str[idx:]
-        return [q.split(".")[1] for q in questions_str.split("\n") if q and str.isnumeric(q[0]) and 0 < q.find(".") < 3]
 
     def _create_questions(self, project_path):
         def dfs(path):
@@ -286,7 +276,7 @@ class KnowlegeGraph:
         try:
             response = self.ai_core.get_generated_text(prompt, 250)
 
-            file_json[QUESTIONS_FIELD] = self._parse_questions(response)
+            file_json[QUESTIONS_FIELD] = parse_numbered_items(response)
             self.storage.insert_json(file_id, file_json)
         except RuntimeError as e:
             if not short_request:
