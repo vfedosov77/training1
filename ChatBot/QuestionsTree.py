@@ -41,7 +41,7 @@ class QuestionsTree:
         result = self.ai_core.get_generated_text(prompt, 2)
 
         try:
-            topic_id = int(result.split(".")[0].split(",")[0])
+            topic_id = int((result.split(".")[0].split(",")[0]).strip())
         except ValueError:
             print("Cannot parse topic_id: " + (result if result else "None"))
             return None
