@@ -35,7 +35,7 @@ class QuestionsTree:
         topics = list(self.main_topics.keys())
 
         prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
-            replace("[TOPICS_WITH_NUMBERS]", self._get_items_with_numbers(topics)).\
+            replace("[TOPICS_WITH_NUMBERS]", get_items_with_numbers(topics)).\
             replace("[QUESTION]", question)
 
         result = self.ai_core.get_generated_text(prompt, 2)
