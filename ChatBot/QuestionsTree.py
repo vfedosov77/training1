@@ -36,7 +36,7 @@ class QuestionsTree:
 
         prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
             replace("[TOPICS_WITH_NUMBERS]", get_items_with_numbers(topics)).\
-            replace("[QUESTION]", question)
+            replace("[QUESTION]", question.strip())
 
         result = self.ai_core.get_generated_text(prompt, 2)
 
@@ -50,14 +50,14 @@ class QuestionsTree:
 
     def _fill_topics(self):
         # TODO: must be created automatically
-        topics = ["Android and Java specific things",
+        topics = ["Android UI",
             "Native code integration",
-            "Computer vision pipeline - high level functionality",
-            "Image features detection",
-            "Algorithms and data structures to store and compare image features",
-            "Single frame processing pipeline - high level functionality",
+            "Video processing",
+            "Mathematics",
+            "Image processing",
+            "Security",
             "Rendering",
-            "Sensors interaction",
+            "Sensors",
             "Filesystem",
             "Other"]
 
