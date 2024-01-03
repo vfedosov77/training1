@@ -12,6 +12,7 @@ from typing import Dict, List, Set
 import itertools
 
 QUESTIONS_PER_REQUEST = 70
+QUESTIONS_PER_REQUEST_FOR_TOPIC = 20
 QUESTIONS_FOR_TOPICS_MAPPING = 10
 MAIN_TOPICS_COUNT = 10
 FOUND_TOPICS_ID = "__MAIN_TOPICS__"
@@ -135,13 +136,13 @@ class QuestionsTree:
                 topics_questions = []
                 too_wide = False
 
-                for i in range(0, len(all_questions), QUESTIONS_PER_REQUEST):
-                    subset = all_questions[i: i + QUESTIONS_PER_REQUEST]
+                for i in range(0, len(all_questions), QUESTIONS_PER_REQUEST_FOR_TOPIC):
+                    subset = all_questions[i: i + QUESTIONS_PER_REQUEST_FOR_TOPIC]
 
                     related = self._find_questions_related_to_topic(subset, topic)
                     topics_questions.extend(related)
 
-                    if len(related) > QUESTIONS_PER_REQUEST // 2:
+                    if len(related) > QUESTIONS_PER_REQUEST_FOR_TOPIC // 2:
                         too_wide = True
                         print("Too many related items - the topic is not distinct")
                         break
