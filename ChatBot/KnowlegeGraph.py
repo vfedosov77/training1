@@ -48,7 +48,7 @@ class KnowlegeGraph:
 
         for item in items:
             if QUESTIONS_FIELD in item:
-                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD]})
+                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
 
         self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage)
 
