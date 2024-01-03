@@ -191,23 +191,12 @@ class QuestionsTree:
         return ids
 
     def _find_questions_related_to_topic(self, questions: List[str], topic):
-        def check_response(response):
-            try:
-                self._get_ids(response)
-            except Exception:
-                return False
-
-            return True
-
         questions_with_numbers = self._get_items_with_numbers(questions)
 
-        prompt = TOPICS_QUSTIONS_PROMPT.replace("[TOPIC]", topic).\
+        prompt = TOPICS_QUESTIONS_PROMPT.replace("[TOPIC]", topic).\
             replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
 
-        response = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
-                                                                     ONLY_COMMA_SEPARATED_PROMPT,
-                                                                     check_response,
-                                                                     50)
+        response = self.ai_core.get_generated_text(prompt, 50)
 
         ids = self._get_ids(response)
         return [questions[idx - 1] for idx in ids if idx <= len(questions)]

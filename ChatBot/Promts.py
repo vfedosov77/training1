@@ -54,23 +54,18 @@ The project source code contains functionality related to the following essentia
 Now I need to unite those topics into bigger items which will be the main items of FAQ - I plan to have 7 main items.
 I see the following main items:"""
 
-TOPICS_QUSTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
+TOPICS_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
 topics. I already found the topics and now I need to find all the related questions for each topic. 
 Here is one of the topics:
 
 '[TOPIC]'
-
-Please provide the list the numbers of the questions that are relevant to that topic. Don't use ranges in the result.
-These are the questions:
+ 
+These are the questions to distribute by topics:
 
 [QUESTIONS_WITH_NUMBERS]
 
-Please mention only the questions which are clearly related to the topic.
-Don't use ranges.
-The result must be formatted as the comma separated numbers.
-If there are any doubts that a question and the topic are related - don't include that question's number."""
-
-ONLY_COMMA_SEPARATED_PROMPT = """Please write only comma separated numbers of questions in your response."""
+I am completely sure that the questions with the following numbers are clearly related to the topic:
+"""
 
 TOPIC2SUBTOPICS_PROMPT = """I am creating a FAQ and I need to slit one big topic '[TOPIC]' into a few (2-5) subtopics. 
 These topic contains the following questions:
