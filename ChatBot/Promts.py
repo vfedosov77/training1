@@ -55,7 +55,8 @@ Now I need to unite those topics into bigger items which will be the main items 
 I see the following main items:"""
 
 TOPICS_QUESTIONS_PROMPT = """I need to organize a set of questions related to a software development project into major 
-topics. I already found the topics and now I need to find all the related questions for each topic. 
+topics. The project can be described as '[PROJECT_DESCRIPTION]'.
+I already found the topics and now I need to find all the related questions for each topic. 
 Here is one of the topics:
 
 '[TOPIC]'

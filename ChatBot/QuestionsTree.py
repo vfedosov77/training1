@@ -194,7 +194,8 @@ class QuestionsTree:
         questions_with_numbers = self._get_items_with_numbers(questions)
 
         prompt = TOPICS_QUESTIONS_PROMPT.replace("[TOPIC]", topic).\
-            replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers)
+            replace("[QUESTIONS_WITH_NUMBERS]", questions_with_numbers).\
+            replace("[PROJECT_DESCRIPTION]", self.proj_description)
 
         response = self.ai_core.get_generated_text(prompt, 50)
 
