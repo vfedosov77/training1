@@ -81,4 +81,3 @@ TOPIC_FOR_QUESTION_PROMPT = """We have the following main topics in our FAQ for 
 [TOPICS_WITH_NUMBERS]
 Your subtopic "[QUESTION]" I would put into the main topic number """
 
-

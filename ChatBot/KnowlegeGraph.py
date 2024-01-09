@@ -115,6 +115,7 @@ class KnowlegeGraph:
 
     @staticmethod
     def _get_id(path):
+        path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/")
         return path
 
     @staticmethod
