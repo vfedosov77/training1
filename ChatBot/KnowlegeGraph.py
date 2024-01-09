@@ -253,6 +253,41 @@ class KnowlegeGraph:
 
         return folder_json
 
+    def _get_tokens_count(self, file_content):
+        file_len = len(file_content)
+
+        if file_len < 500:
+            return 100
+
+        if file_len < 2000:
+            return 200
+
+        if file_len < 3000:
+            return 300
+
+        return 350
+
+    def _get_generated_questions(self, file_name, file_content, folder_desc):
+        tokens_count = self._get_tokens_count(file_content)
+
+        if self.ai_core.is_generation_preferred():
+            prompt = "1. " + FILES_QUESTIONS_GENERATOR_PROMPT.replace("[FILE_NAME]", file_name). \
+                replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION). \
+                replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
+
+            response = self.ai_core.get_generated_text(prompt, tokens_count)
+        else:
+            context = FILES_QUESTIONS_CONTEXT.replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
+                replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc)
+
+            prompt = "1. " + FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name). \
+                replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION). \
+                replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
+
+            response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
+
+        return response
+
     def _generate_file_questions(self, path, short_request=False):
         file_name = os.path.basename(path)
 
@@ -271,12 +306,8 @@ class KnowlegeGraph:
         if short_request:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
 
-        prompt = FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).\
-            replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
-            replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", self._get_file_content(path))
         try:
-            response = self.ai_core.get_generated_text(prompt, 250)
-
+            response = self._get_generated_questions(file_name, self._get_file_content(path), folder_desc)
             file_json[QUESTIONS_FIELD] = parse_numbered_items(response)
             self.storage.insert_json(file_id, file_json)
         except RuntimeError as e:

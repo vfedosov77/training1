@@ -50,6 +50,9 @@ class MistralAiCore:
             device_map="auto"
         )
 
+    def is_generation_preferred(self):
+        return True
+
     def get_generated_text(self, prompt: str, max_answer_tokens) -> str:
         print("Prompt: " + prompt)
 

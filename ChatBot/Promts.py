@@ -39,15 +39,31 @@ Please integrate these themes or functionalities to provide a holistic understan
 rather than elaborating on individual file contents. 
 Please don't mention each file - we need only the functionality of the whole directory."""
 
-FILES_QUESTIONS_PROMPT = \
+FILES_QUESTIONS_GENERATOR_PROMPT = \
 """I am working on a project which can be described as '[PROJECT_DESCRIPTION]'. 
 In that project there is a folder which can be described as '[PARENT_FOLDER_DESCRIPTION]'.
 Here is the full code of one of the file of that folder "[FILE_NAME]":
 
 [SOURCES]
 
-I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only short names here):
-"""
+I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only a short description here):
+1. """
+
+FILES_QUESTIONS_CONTEXT = """You are creating a big FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]. 
+FAQ will be used by software developers and managers.
+In that FAQ only essential topics of the project functionality must be included.
+Now you are working with the folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
+
+FILES_QUESTIONS_PROMPT = \
+"""Which topics would you add into FAQ looking at the following sources of the file '[FILE_NAME]':
+
+[SOURCES]
+
+
+
+Please take into account that a FAQ's user probably don't know about that file and the classes/functions inside of it. 
+He probably has a related bug or he investigates the project asking questions. You should provide for each topic only one short sentence. Also please add the number at the beginning."""
+
 
 GROUP_QUESTIONS_PROMPT = """I am creating FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'
 The project source code contains functionality related to the following essential topics:
