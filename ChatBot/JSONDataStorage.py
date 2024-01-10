@@ -38,5 +38,15 @@ class JSONDataStorage:
         cursor.execute("SELECT json_data FROM data_store")
         return [json.loads(row[0]) for row in cursor]
 
+    def get_all_with_ids(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id, json_data FROM data_store")
+        return [(row[0], json.loads(row[1])) for row in cursor]
+
     def close(self):
         self.conn.close()
+
+    def remove(self, id):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM data_store WHERE id = ?", (id,))
+        self.conn.commit()

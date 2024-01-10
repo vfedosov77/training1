@@ -2,27 +2,11 @@ from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree import QuestionsTree
 from ChatBot.Utils import *
-
+from ChatBot.Constants import *
 import torch
 import os
 import pathlib as pl
 import json
-
-USER_PROMPT = f"context: ```{input}``` \n\n output: "
-
-AI_REQUEST = ""
-MAX_SYMBOLS_TO_READ = 25000
-NODE_1 = "node_1"
-NODE_2 = "node_2"
-EDGE = "edge"
-
-FILE_KIND = "File"
-DIRECTORY_KIND = "Directory"
-QUESTIONS_FIELD = "questions"
-KIND_FIELD = "kind"
-DESCRIPTION_FIELD = "description"
-PATH_FIELD = "path"
-BROCKEN_KIND = "brocken"
 
 PROJECT_DESCRIPTION = "Augmented reality engine for Android devices."
 
@@ -39,8 +23,7 @@ class KnowlegeGraph:
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
         self.tree = None
-
-        #self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
+        # self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
 
     def get_graph(self):
         items = self.storage.get_all()
@@ -51,9 +34,12 @@ class KnowlegeGraph:
                 questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
 
         self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage)
+        return self.tree
 
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
+
+        # self._clear_brocken()
 
         def dfs(path):
             children = []
@@ -75,8 +61,8 @@ class KnowlegeGraph:
                     torch.cuda.empty_cache()
                     print(f"Cannot process {child_path} because of the lack of the GPU memory")
 
-                    self.storage.insert_json(self._get_id(child_path),
-                                             self._create_json_for_path(child_path, BROCKEN_KIND, ""))
+                    self.storage.insert_json(get_file_id(child_path),
+                                             self._create_json_for_path(child_path, BROKEN_KIND, ""))
             try:
                 return self._process_dir(path, children, False)
             except RuntimeError as e:
@@ -87,6 +73,19 @@ class KnowlegeGraph:
 
         dfs(project_path)
         self._create_questions(project_path)
+
+    def _clear_brocken(self):
+        print("Broken will be cleaned")
+        count = 0
+
+        for id, item in self.storage.get_all_with_ids():
+            if (KIND_FIELD in item and (item[KIND_FIELD] == BROKEN_KIND or item[KIND_FIELD] == "brocken")) or \
+                    KIND_FIELD not in item and PATH_FIELD in item:
+                self.storage.remove(id)
+                count += 1
+
+        print("Cleaned " + str(count) + " items")
+        exit(0)
 
     def _create_questions(self, project_path):
         def dfs(path):
@@ -114,16 +113,11 @@ class KnowlegeGraph:
         return file_size // 10
 
     @staticmethod
-    def _get_id(path):
-        path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/")
-        return path
-
-    @staticmethod
     def _create_json_for_path(path, kind, description):
         return {PATH_FIELD: path, KIND_FIELD: kind, DESCRIPTION_FIELD: description}
 
     def _process_dir(self, path, children, make_short_request):
-        dir_id = self._get_id(path)
+        dir_id = get_file_id(path)
 
         if not children:
             raise ValueError()
@@ -132,7 +126,7 @@ class KnowlegeGraph:
 
         dir_json = self.storage.get_json(dir_id)
         if dir_json:
-            if dir_json[KIND_FIELD] == BROCKEN_KIND:
+            if dir_json[KIND_FIELD] == BROKEN_KIND:
                 make_short_request = True
             else:
                 print("Info was found for the directory: " + path)
@@ -156,7 +150,7 @@ class KnowlegeGraph:
 
     def _create_children_descriptions(self, children, files_descriptions):
         for child in children:
-            obj_json = self.storage.get_json(self._get_id(child))
+            obj_json = self.storage.get_json(get_file_id(child))
 
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
@@ -170,7 +164,7 @@ class KnowlegeGraph:
         max_simbols_per_file = SHORT_FILES_DESCRIPTION_SIZE // len(children)
 
         for child in children:
-            obj_json = self.storage.get_json(self._get_id(child))
+            obj_json = self.storage.get_json(get_file_id(child))
 
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
@@ -180,24 +174,6 @@ class KnowlegeGraph:
                                       desc + "...\n\n")
         descriptions = "".join(files_descriptions)
         return descriptions
-
-    @staticmethod
-    def _get_file_content(path):
-        try:
-            with open(path) as f:
-                text = f.read(MAX_SYMBOLS_TO_READ)
-
-                if not text.strip():
-                    raise ValueError()
-        except UnicodeDecodeError:
-            try:
-                with open(path) as f:
-                    text = f.read(-1)[:MAX_SYMBOLS_TO_READ]
-            except UnicodeDecodeError:
-                print("Cannot read the file content: " + path)
-                raise ValueError()
-
-        return text
 
     def _process_file(self, path):
         suffix = pl.Path(path).suffix.lower()[1:]
@@ -209,18 +185,18 @@ class KnowlegeGraph:
 
         print("File: " + path)
 
-        file_id = self._get_id(path)
+        file_id = get_file_id(path)
         file_json = self.storage.get_json(file_id)
 
         if file_json:
-            if file_json[KIND_FIELD] == BROCKEN_KIND:
+            if file_json[KIND_FIELD] == BROKEN_KIND:
                 print("File was not parsed because of memory error previously: " + path)
                 raise ValueError()
 
             print("Info was found for the file: " + path)
             return file_id
 
-        text = self._get_file_content(path)
+        text = get_file_content(path)
         response = self.ai_core.get_short_conversation_result(FILE_SUMMARY_PROMPT + text, 1500)
         self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
 
@@ -231,7 +207,7 @@ class KnowlegeGraph:
 
         for child in os.listdir(path):
             child_path = os.path.join(path, child)
-            item_json = self.storage.get_json(self._get_id(child_path))
+            item_json = self.storage.get_json(get_file_id(child_path))
 
             if item_json:
                 children.append(item_json)
@@ -240,7 +216,7 @@ class KnowlegeGraph:
 
     def _get_parent_json(self, path):
         parent = os.path.dirname(path)
-        folder_json = self.storage.get_json(self._get_id(parent))
+        folder_json = self.storage.get_json(get_file_id(parent))
 
         if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
             raise ValueError("Cannot find the folder json!!!!!!!!!! " + parent)
@@ -291,7 +267,7 @@ class KnowlegeGraph:
     def _generate_file_questions(self, path, short_request=False):
         file_name = os.path.basename(path)
 
-        file_id = self._get_id(path)
+        file_id = get_file_id(path)
         file_json = self.storage.get_json(file_id)
 
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
@@ -307,8 +283,10 @@ class KnowlegeGraph:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
 
         try:
-            response = self._get_generated_questions(file_name, self._get_file_content(path), folder_desc)
-            file_json[QUESTIONS_FIELD] = parse_numbered_items(response)
+            response = self._get_generated_questions(file_name, get_file_content(path), folder_desc)
+            questions = parse_numbered_items(response)
+            print("Parsed: " + str(questions))
+            file_json[QUESTIONS_FIELD] = questions
             self.storage.insert_json(file_id, file_json)
         except RuntimeError as e:
             if not short_request:

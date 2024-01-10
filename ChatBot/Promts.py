@@ -25,7 +25,8 @@ DOC_RELATIONSHIPS_PROMPT = (
 
 FILE_SUMMARY_PROMPT = \
     """"Based on the following content, provide a concise summary highlighting the main purpose, 
-    key functionalities, and any notable features or methods. Here is the content: """
+    key functionalities, and any notable features or methods. Here is the content: 
+    """
 
 DIRECTORY_SUMMARY_PROMPT = \
 """"Generate a summary that captures the collective functionality and key themes of the directory '[DIRECTORY_NAME]', 
@@ -97,3 +98,34 @@ TOPIC_FOR_QUESTION_PROMPT = """We have the following main topics in our FAQ for 
 [TOPICS_WITH_NUMBERS]
 Your subtopic "[QUESTION]" I would put into the main topic number """
 
+###############################################################################################
+
+WHICH_TOPIC_IS_CLOSEST_CONTEXT = """You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+This project is big and you are not familiar with all the parts of the project. 
+But there is FAQ for that project which can help you to find quickly all the required info about the project.
+This FAQ is structured and all the questions there are split into topics."""
+
+WHICH_TOPIC_IS_CLOSEST_PROMT = """You need an answer for the question '[QUESTION]'.
+Which of the following FAQ topics can contain the answer:
+[TOPICS_WITH_NUMBERS]
+Please PROVIDE ONLY THE NUMBER of the topic."""
+
+CHECK_THE_FILE_CONTEXT = """You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+This project is big and you are not familiar with all the parts of the project.
+Now you are working with one of the source files of a folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
+
+CHECK_THE_FILE_PROMPT = """Your task is to find a place in the code which is related to the question:
+ 
+[QUESTION]
+ 
+If there is such a place then please write the name of the most related item (class, method, function, variable etc.). If you think that the file contains no code which is closely related to the question - write '__NOTHING__' in your answer.
+This is the sources of the file '[FILE_NAME]':
+
+[SOURCES]
+
+Please do not forget to add in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
+"""
+
+
+
+# Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:

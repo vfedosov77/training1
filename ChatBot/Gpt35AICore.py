@@ -21,7 +21,7 @@ class Gpt35AICore:
         return response
 
     def get_short_conversation_result(self, prompt, max_answer_tokens, context=""):
-        print("Context: " + context + " Prompt: " + prompt)
+        print("Context: " + context + "\nPrompt: " + prompt)
 
         messages = [
             {"role": "system", "content": context},
