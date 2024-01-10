@@ -7,6 +7,7 @@ class Dialog(tk.Tk):
         super().__init__()
 
         self.info_provider = None
+        self.items2details = dict()
 
         self.title("Please ask the question")
         self.geometry("800x1000")
@@ -22,23 +23,25 @@ class Dialog(tk.Tk):
         self.tree.pack(expand=True, fill='both', side=tk.TOP)
 
         # Define columns
-        self.tree['columns'] = ('summary', 'details')
+        self.tree['columns'] = ('summary')
 
         # Format columns
         self.tree.column('#0', width=0, stretch=tk.NO)
-        self.tree.column('summary', anchor=tk.W, width=400)
-        self.tree.column('details', anchor=tk.W, width=400)
+        self.tree.column('summary', anchor=tk.W, width=800)
 
         # Create headings
         self.tree.heading('#0', text='', anchor=tk.W)
         self.tree.heading('summary', text='Summary', anchor=tk.W)
-        self.tree.heading('details', text='Details', anchor=tk.W)
-
-        # Define a tag to hide details by default
-        self.tree.tag_configure('hidden', image='')
 
         # Bind the item click event
-        self.tree.bind('<Double-1>', self.toggle_details)
+        self.tree.bind('<Double-1>', self.show_details)
+
+    def clean(self):
+        for child in self.tree.get_children():
+            self.tree.delete(child)
+
+        self.items2details.clear()
+
 
     def set_provider(self, info_provider):
         self.info_provider = info_provider
@@ -49,10 +52,7 @@ class Dialog(tk.Tk):
 
         if text:
             self.submit_button.config(state=tk.DISABLED)
-
-            for child in self.tree.get_children():
-                self.tree.delete(child)
-
+            self.clean()
             self.info_provider.get_answer(text)
 
             self.submit_button.config(state=tk.NORMAL)
@@ -61,23 +61,24 @@ class Dialog(tk.Tk):
 
     def add_log_entry(self, summary, details):
         # Add a parent item
-        parent = self.tree.insert('', 'end', text='', values=(summary, '[Click to expand]'), tags=('hidden',))
-        # Add a child item with details
-        self.tree.insert(parent, 'end', text='', values=('', details), tags=('hidden',))
+        new_item = self.tree.insert('', 'end', text=summary, values=(summary, '[Click to expand]'))
+        self.items2details[new_item] = details
         self.update()
 
-    def toggle_details(self, event):
-        item = self.tree.selget_childrenection()[0]
-        if self.tree.parent(item):  # Ignore clicks on child items
-            return
-        if self.tree.tag_has('hidden', item):
-            # Show details
-            self.tree.item(item, tags=())
-            self.tree.set(item, 'details', '')
-        else:
-            # Hide details
-            self.tree.item(item, tags=('hidden',))
-            self.tree.set(item, 'details', '[Click to expand]')
-            for child in self.tree.get_children(item):
-                self.tree.detach(child)
-            self.tree.reattach(item, '', 0)
+    def show_details(self, event):
+        item = self.tree.selection()[0]
+        # Check if the item clicked is a parent item
+        if not self.tree.parent(item):
+            # Create a new Toplevel window
+            detail_window = tk.Toplevel(self)
+            detail_window.title("Log Details")
+            detail_window.geometry("1000x1000")
+            # Create a text widget and insert the details
+            text = tk.Text(detail_window, wrap='word')
+            text.insert(tk.END, self.items2details[item])
+            text.pack(expand=True, fill='both', padx=5, pady=5)
+            # Make the text widget read-only
+            text.config(state=tk.DISABLED)
+            # Add a close button
+            close_button = tk.Button(detail_window, text="Close", command=detail_window.destroy)
+            close_button.pack(side=tk.BOTTOM, pady=5)
