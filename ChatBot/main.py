@@ -1,12 +1,23 @@
 import os
 
 from Gpt35AICore import Gpt35AICore
-from KnowlegeGraph import KnowlegeGraph
+from KnowlegeBase import KnowlegeBase
+from Dialog import Dialog
+
+app = Dialog()
+
+
+def on_step_callback(summary, details):
+    app.add_log_entry(summary, details)
 
 
 ai_core = Gpt35AICore()
-graph = KnowlegeGraph(ai_core)
+base = KnowlegeBase(ai_core, on_step_callback)
 
-graph.discover_project("/home/q548040/Downloads/ParallelWorld/ParallelWorld/")
-graph = graph.get_graph()
-graph.get_answer("Where is the main view of the application defined?")
+base.discover_project("/home/q548040/Downloads/ParallelWorld/ParallelWorld/")
+tree = base.get_tree()
+
+app.set_provider(tree)
+app.mainloop()
+
+#tree.get_answer("Where is the main view of the application defined?")

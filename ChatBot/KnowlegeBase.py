@@ -14,8 +14,8 @@ SHORT_FOLDER_DESCRIPTION_SIZE = 3000
 SHORT_FILES_DESCRIPTION_SIZE = 5000
 
 
-class KnowlegeGraph:
-    def __init__(self, ai_core):
+class KnowlegeBase:
+    def __init__(self, ai_core, callback=None):
         self.storage: JSONDataStorage = None
         self.files_info = dict()
         self.dirs_info = dict()
@@ -23,9 +23,10 @@ class KnowlegeGraph:
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
         self.tree = None
+        self.callback = callback
         # self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
 
-    def get_graph(self):
+    def get_tree(self):
         items = self.storage.get_all()
         questions = dict()
 
@@ -33,7 +34,7 @@ class KnowlegeGraph:
             if QUESTIONS_FIELD in item:
                 questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
 
-        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage)
+        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage, self.callback)
         return self.tree
 
     def discover_project(self, project_path: str):
@@ -73,6 +74,10 @@ class KnowlegeGraph:
 
         dfs(project_path)
         self._create_questions(project_path)
+
+    def _on_step(self, short_name, description):
+        if self.callback:
+            self.callback(short_name, description)
 
     def _clear_brocken(self):
         print("Broken will be cleaned")

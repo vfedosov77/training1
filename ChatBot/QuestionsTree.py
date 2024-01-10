@@ -22,31 +22,35 @@ QUESTIONS_FOR_MAIN_TOPICS = QUESTIONS_PER_REQUEST * 2
 
 
 class QuestionsTree:
-    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description, storage: JSONDataStorage):
+    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description, storage: JSONDataStorage, callback):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
         self.proj_description = proj_description
         self.storage: JSONDataStorage = storage
         self.main_topics: Dict[str, List[str]] = None
+        self.callback = callback
         self._fill_topics()
         self._make_tree()
         self._fill_questions2files()
 
-    def get_corresponding_item(self, question, items):
+    def get_answer(self, question: str, ignore_topic = None):
+        return self._get_answer(question, self.main_topics)
+
+    def _get_corresponding_item(self, question, items):
         context = WHICH_TOPIC_IS_CLOSEST_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)
         prompt = WHICH_TOPIC_IS_CLOSEST_PROMT.replace("[QUESTION]", question). \
             replace("[TOPICS_WITH_NUMBERS]", items)
 
+        self._on_step(f"Find corresponding topic from {len(question)} items.", prompt)
         result = self.ai_core.get_short_conversation_result(prompt, 2, context)
-        return get_idx_from_response(result)
-
-    def get_answer(self, question: str, ignore_topic = None):
-        return self._get_answer(question, self.main_topics)
+        idx = get_idx_from_response(result)
+        self._on_step(f"Selected item with id={idx}.", None)
+        return idx
 
     def _get_answer(self, question: str, topics_dict: dict, ignore_topic = None):
         topics = [t for t in topics_dict.keys() if t != ignore_topic]
-        topic_id = self.get_corresponding_item(question, get_items_with_numbers(topics))
+        topic_id = self._get_corresponding_item(question, get_items_with_numbers(topics))
         topic = topics[topic_id - 1]
         questions = topics_dict[topic]
 
@@ -57,7 +61,7 @@ class QuestionsTree:
         else:
             for i in range(0, len(questions), 10):
                 cur_questions = questions[i: i + 10]
-                question_id = self.get_corresponding_item(question, get_items_with_numbers(cur_questions))
+                question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions))
                 cur_question = cur_questions[question_id - 1]
 
                 result, path = self._check_file(self.questions2files[cur_question], question)
@@ -71,6 +75,10 @@ class QuestionsTree:
             return self.get_answer(question, topic)
 
         return answer
+
+    def _on_step(self, short_name, description):
+        if self.callback:
+            self.callback(short_name, description)
 
     def _get_topic_for_question(self, question: str, topics_dict: dict) -> str:
         topics = list(topics_dict.keys())
@@ -99,11 +107,14 @@ class QuestionsTree:
             replace("[FILE_NAME]", file_name).\
             replace("[SOURCES]", file_content)
 
+        self._on_step(f"Check file {file_name} content.", "Context: \n" + context + "\nPrompt:\n" + prompt)
         result = self.ai_core.get_short_conversation_result(prompt, 100, context)
 
         if result.find("__NOTHING__") == -1:
+            self._on_step(f"Found some relevant info.", result)
             return result, path
 
+        self._on_step(f"No relevant info was found.", result)
         return None, None
 
     def _fill_questions2files(self):
