@@ -68,7 +68,7 @@ class QuestionsTree:
 
                 if result:
                     answer = (result, path)
-                    print("Answer: " + result + "File: " + path)
+                    print("Answer: " + result + " File: " + path)
                     break
 
         if answer is None and ignore_topic is None:
@@ -98,7 +98,7 @@ class QuestionsTree:
         def check_answer( answer):
             nonlocal found_answer
 
-            if answer.find("__NOTHING__") == -1:
+            if answer.find("__NOTHING__") == -1 or answer.find("o needs for ") != -1:
                 self._on_step(f"Found the answer: " + answer, file_content, SELECTED_TEXT)
                 found_answer = True
                 return False
@@ -127,7 +127,7 @@ class QuestionsTree:
                                                                    100,
                                                                    context)
 
-        if found_answer:
+        if found_answer and result != "__NOTHING__":
             self._on_step(result, file_content, ITEM_TO_HIGHLIGHT)
             return result, path
 

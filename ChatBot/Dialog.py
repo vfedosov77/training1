@@ -24,9 +24,12 @@ class Dialog(tk.Tk):
         self.submit_button.pack(side=tk.RIGHT, padx=5)
 
         self.log = tk.Text(self)
-        self.log.pack(expand=True, fill='both', side=tk.TOP)
+        self.log.pack(expand=True, fill='both', side=tk.LEFT)
         self.log.tag_configure("color_tag", foreground="green")
-
+        self.scrollbar = tk.Scrollbar(self)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.log.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.log.yview)
         # Bind the item click event
         self.log.bind('<Double-1>', self.show_details)
         self.item_to_highlight = None
@@ -50,7 +53,11 @@ class Dialog(tk.Tk):
         if text:
             self.submit_button.config(state=tk.DISABLED)
             self.clean()
-            self.info_provider.get_answer(text)
+
+            try:
+                self.info_provider.get_answer(text)
+            finally:
+                self.submit_button.config(state=tk.NORMAL)
 
             self.submit_button.config(state=tk.NORMAL)
 
@@ -69,17 +76,14 @@ class Dialog(tk.Tk):
 
         self.update()
 
-    def highlight_text(self, entry, text):
-        pattern = re.compile(f"\b{text}\b")
-        start = "1.0"
+    def highlight_text(self, widget, text):
+        lines = widget.get("1.0", tk.END).split("\n")
 
-        while True:
-            match = pattern.search(text.get(start, tk.END))
-            if not match:
-                break
-            start = f"{match.start()}+{start}"
-            end = f"{match.end()}+{start}"
-            entry.tag_add("color_tag", start, end)
+        for i, line in enumerate(lines):
+            if line.find(text) != -1:
+                widget.tag_add("color_tag", str(i + 1) + ".0", str(i + 1) + "." + str(len(line)))
+
+        self.update()
 
     def show_details(self, event):
         index = self.log.index(tk.CURRENT)
@@ -94,13 +98,18 @@ class Dialog(tk.Tk):
             # Create a text widget and insert the details
             text = tk.Text(detail_window, wrap='word')
             text.insert(tk.END, self.lines2details[line_number])
-            text.pack(expand=True, fill='both', padx=5, pady=5)
-            self.log.tag_configure("color_tag", foreground="green")
+            text.pack(expand=True, side=tk.LEFT, fill='both', padx=5, pady=5)
+            text.tag_configure("color_tag", foreground="green")
+            scrollbar = tk.Scrollbar(detail_window)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            text.config(yscrollcommand=scrollbar.set)
+            scrollbar.config(command=text.yview)
+
             # Make the text widget read-only
             text.config(state=tk.DISABLED)
             # Add a close button
-            close_button = tk.Button(detail_window, text="Close", command=detail_window.destroy)
-            close_button.pack(side=tk.BOTTOM, pady=5)
+            #close_button = tk.Button(detail_window, text="Close", command=detail_window.destroy)
+            #close_button.pack(side=tk.BOTTOM, pady=5)
 
             if self.item_to_highlight:
                 self.highlight_text(text, self.item_to_highlight)
