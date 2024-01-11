@@ -13,26 +13,35 @@ class Dialog(tk.Tk):
         self.cur_line = 0
 
         self.title("Please ask the question")
-        self.geometry("800x1000")
+        self.geometry("800x800")
 
-        self.bottom_frame = tk.Frame(self)
-        self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-        self.entry = tk.Entry(self.bottom_frame)
-        self.entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        self.entry = tk.Entry(self, width=40)
+        self.entry.grid(row=1, column=0, sticky="NSEW")
         self.entry.insert(0, "How the camera focus is processed?")
-        self.submit_button = tk.Button(self.bottom_frame, text="Submit query", command=self.submit_query)
-        self.submit_button.pack(side=tk.RIGHT, padx=5)
+        self.submit_button = tk.Button(self, text="Submit", command=self.submit_query, width=5)
+        self.submit_button.grid(row=1, column=1)
 
-        self.log = tk.Text(self)
-        self.log.pack(expand=True, fill='both', side=tk.LEFT)
+        self.log = tk.Text(self, width=40)
+        self.log.grid(row=0, column=2, rowspan=2, sticky="NSEW")
         self.log.tag_configure("color_tag", foreground="green")
+
         self.scrollbar = tk.Scrollbar(self)
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.scrollbar.grid(row=0, column=3, rowspan=2, sticky="NSW")
         self.log.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.log.yview)
         # Bind the item click event
         self.log.bind('<Double-1>', self.show_details)
         self.item_to_highlight = None
+
+        self.chat = tk.Text(self, width=400)
+        self.chat.grid(row=0, column=0, sticky="NSEW")
+        self.chat_scrollbar = tk.Scrollbar(self)
+        self.chat_scrollbar.grid(row=0, column=1, sticky="NSW")
+        self.chat.config(yscrollcommand=self.chat_scrollbar.set)
+        self.chat_scrollbar.config(command=self.chat.yview)
+
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
 
         #self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
 
