@@ -75,6 +75,12 @@ class Dialog(tk.Tk):
     def set_provider(self, info_provider):
         self.info_provider = info_provider
 
+    def add_role_message(self, role, message):
+        self.chat.insert('end', role + ": " + message + "\n")
+        self.set_tag(self.chat, 'bold_tag', self.cur_chat_line, 0, len(role) + 1)
+        self.cur_chat_line += 1
+        self.update()
+
     def submit_query(self):
         assert self.info_provider
         text = self.entry.get()
@@ -82,14 +88,15 @@ class Dialog(tk.Tk):
         if text:
             self.submit_button.config(state=tk.DISABLED)
             self.clean_log()
-            self.chat.insert('end', "User: " + text + "\n")
-            self.set_tag(self.chat, 'bold_tag', self.cur_chat_line, 0, 5)
-            self.update()
-            self.cur_chat_line += 1
+            self.add_role_message("User", text)
+
             self.history.append(("Colleague", text))
 
             try:
-                self.info_provider.get_answer(text, self.history)
+                result = self.info_provider.get_answer(text, self.history)
+
+                if result is None:
+                    self.add_role_message("Chatbot", "No relevant info was found")
             finally:
                 self.submit_button.config(state=tk.NORMAL)
 
@@ -113,12 +120,9 @@ class Dialog(tk.Tk):
 
         if kind != NORMAL_TEXT:
             self.log.tag_add("color_tag", str(self.cur_log_line) + ".0", str(self.cur_log_line) + "." + str(len(summary)))
-
-            self.chat.insert('end', "Chatbot: " + summary + "\n")
+            self.add_role_message("Chatbot", summary)
             self.history.append(("You", summary))
-            self.set_tag(self.chat, 'bold_tag', self.cur_chat_line, 0, 8)
-            self.lines2details[-self.cur_chat_line] = details
-            self.cur_chat_line += 1
+            self.lines2details[-(self.cur_chat_line - 1)] = details
 
         self.update()
 

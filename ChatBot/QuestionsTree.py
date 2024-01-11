@@ -33,9 +33,14 @@ class QuestionsTree:
         self._fill_topics()
         self._make_tree()
         self._fill_questions2files()
+        self.checked_files = set()
 
     def get_answer(self, question: str, chat_history = None):
-        return self._get_answer(question, self.main_topics)
+        try:
+            self.checked_files.clear()
+            return self._get_answer(question, self.main_topics)
+        finally:
+            self.checked_files.clear()
 
     def _get_corresponding_item(self, question, items, items_count):
         context = WHICH_TOPIC_IS_CLOSEST_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)
@@ -59,20 +64,28 @@ class QuestionsTree:
         if isinstance(questions, dict):
             answer = self._get_answer(question, questions, None)
         else:
-            for i in range(0, len(questions), 10):
-                cur_questions = questions[i: i + 10]
+            questions = [q for q in questions if self.questions2files[q] not in self.checked_files]
+
+            while len(questions) > 0:
+                cur_questions = questions[:10]
                 question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions), len(cur_questions))
-                cur_question = cur_questions[question_id - 1]
 
-                result, path = self.check_file(self.questions2files[cur_question], question)
+                if question_id is not None and question_id < len(cur_questions):
+                    cur_question = cur_questions[question_id - 1]
 
-                if result:
-                    answer = (result, path)
-                    print("Answer: " + result + " File: " + path)
-                    break
+                    result, path = self.check_file(self.questions2files[cur_question], question)
+
+                    if result:
+                        answer = (result, path)
+                        print("Answer: " + result + " File: " + path)
+                        break
+
+                cur_questions = set(cur_questions)
+                questions = [q for q in questions
+                             if q not in cur_questions and self.questions2files[q] not in self.checked_files]
 
         if answer is None and ignore_topic is None:
-            return self.get_answer(question, topic)
+            return self._get_answer(question, topics_dict, topic)
 
         return answer
 
@@ -98,8 +111,9 @@ class QuestionsTree:
         def check_answer( answer):
             nonlocal found_answer
 
-            if answer.find("__NOTHING__") == -1 or answer.find("o needs for ") != -1:
-                self._on_step(f"Found the answer: " + answer, file_content, SELECTED_TEXT)
+            if answer.find("__NOTHING__") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
+                header = "Found the answer: " if answer.find("__NOTHING__") == -1 else "Found a relevant info: "
+                self._on_step(header + answer.replace("__NOTHING__", "NOT_SURE"), file_content, SELECTED_TEXT)
                 found_answer = True
                 return False
 
@@ -126,6 +140,8 @@ class QuestionsTree:
                                                                    check_answer,
                                                                    100,
                                                                    context)
+
+        self.checked_files.add(path)
 
         if found_answer and result != "__NOTHING__":
             self._on_step(result, file_content, ITEM_TO_HIGHLIGHT)
