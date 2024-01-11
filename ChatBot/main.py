@@ -18,7 +18,7 @@ base = KnowlegeBase(ai_core, on_step_callback)
 base.discover_project("/home/q548040/Downloads/ParallelWorld/ParallelWorld/")
 tree = base.get_tree()
 
-app.set_provider(tree)
+app.set_provider(base)
 app.mainloop()
 
 #tree.get_answer("Where is the main view of the application defined?")

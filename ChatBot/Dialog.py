@@ -15,6 +15,8 @@ class Dialog(tk.Tk):
         self.cur_log_line = 0
         self.cur_chat_line = 0
 
+        self.history = []
+
         self.title("Please ask the question")
         self.geometry("1000x800")
 
@@ -29,8 +31,11 @@ class Dialog(tk.Tk):
         self.submit_button = tk.Button(self, text="Submit", command=self.submit_query, width=5)
         self.submit_button.grid(row=2, column=1)
 
+        self.clean_button = tk.Button(self, text="Clean", command=self.clean, width=5)
+        self.clean_button.grid(row=2, column=2)
+
         self.log = tk.Text(self, width=60)
-        self.log.grid(row=1, column=2, rowspan=2, sticky="NSEW")
+        self.log.grid(row=1, column=2, rowspan=1, sticky="NSEW")
         self.log.tag_configure("color_tag", foreground="green")
 
         self.scrollbar = tk.Scrollbar(self)
@@ -55,12 +60,17 @@ class Dialog(tk.Tk):
 
         #self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
 
-    def clean(self):
+    def clean_log(self):
         self.log.delete("1.0", tk.END)
-
         self.lines2details.clear()
         self.cur_log_line = 0
 
+    def clean(self):
+        self.lines2details.clear()
+        self.history.clear()
+        self.chat.delete("1.0", tk.END)
+        self.cur_chat_line = 0
+        self.clean_log()
 
     def set_provider(self, info_provider):
         self.info_provider = info_provider
@@ -71,15 +81,15 @@ class Dialog(tk.Tk):
 
         if text:
             self.submit_button.config(state=tk.DISABLED)
-            self.clean()
-
+            self.clean_log()
             self.chat.insert('end', "User: " + text + "\n")
             self.set_tag(self.chat, 'bold_tag', self.cur_chat_line, 0, 5)
             self.update()
             self.cur_chat_line += 1
+            self.history.append(("Colleague", text))
 
             try:
-                self.info_provider.get_answer(text)
+                self.info_provider.get_answer(text, self.history)
             finally:
                 self.submit_button.config(state=tk.NORMAL)
 
@@ -105,6 +115,7 @@ class Dialog(tk.Tk):
             self.log.tag_add("color_tag", str(self.cur_log_line) + ".0", str(self.cur_log_line) + "." + str(len(summary)))
 
             self.chat.insert('end', "Chatbot: " + summary + "\n")
+            self.history.append(("You", summary))
             self.set_tag(self.chat, 'bold_tag', self.cur_chat_line, 0, 8)
             self.lines2details[-self.cur_chat_line] = details
             self.cur_chat_line += 1

@@ -129,3 +129,24 @@ Please do not forget to add in your message __NOTHING__ keyword if you think tha
 ONLY_RELATED_ITEM_NAME_PROMPT = "WRITE ONLY THE NAME OF THE ITEM"
 
 # Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:
+
+#############################################################################
+ROOT_CONTEXT = """You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+You know not too good the code of the project but there is a big FAQ with almost all the info about the code and a separated FAQ for the documentation (now it is not too good).
+There is also a project keywords index where you can find a file which uses some keyword. But it contains only project-specific names (classes, methods etc)
+Your colleague asked you a few questions about the project. This is the history of the communication:
+[CHAT_LOG]
+"""
+
+ROOT_PROMPT = """Which one of the following actions would you prefer to answer the following question of your colleague '[QUESTION]':
+1. See source code of the project.
+2. See the project keywords index.
+3. Can provide the answer immediately - no further investigation is needed.
+PLEASE PROVIDE ONLY THE NUMBER OF ACTION"""
+#4. See the documentation
+#Only one word can be checked - so you must be sure.
+
+KEYWORD_PROMPT = """Which keyword in the keywords index would you find to answer the following question of your colleague '[QUESTION]':
+PLEASE PROVIDE ONLY THE KEYWORD"""
+
+IMMEDIATELY_PROMPT = """Please answer the following question of the colleague: '[QUESTION]'"""

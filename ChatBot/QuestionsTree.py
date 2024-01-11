@@ -34,7 +34,7 @@ class QuestionsTree:
         self._make_tree()
         self._fill_questions2files()
 
-    def get_answer(self, question: str, ignore_topic = None):
+    def get_answer(self, question: str, chat_history = None):
         return self._get_answer(question, self.main_topics)
 
     def _get_corresponding_item(self, question, items, items_count):
@@ -64,7 +64,7 @@ class QuestionsTree:
                 question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions), len(cur_questions))
                 cur_question = cur_questions[question_id - 1]
 
-                result, path = self._check_file(self.questions2files[cur_question], question)
+                result, path = self.check_file(self.questions2files[cur_question], question)
 
                 if result:
                     answer = (result, path)
@@ -92,7 +92,7 @@ class QuestionsTree:
         topic_id = get_idx_from_response(result)
         return topics[topic_id - 1] if topic_id < len(topics) else None
 
-    def _check_file(self, path, question):
+    def check_file(self, path, question):
         found_answer = False
 
         def check_answer( answer):

@@ -1,12 +1,14 @@
 from ChatBot.Promts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree import QuestionsTree
+from ChatBot.KeywordsIndex import KeywordsIndex
 from ChatBot.Utils import *
 from ChatBot.Constants import *
 import torch
 import os
 import pathlib as pl
 import json
+from typing import List, Tuple
 
 PROJECT_DESCRIPTION = "Augmented reality engine for Android devices."
 
@@ -23,8 +25,57 @@ class KnowlegeBase:
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
         self.tree = None
+        self.keywords = None
         self.callback = callback
         # self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
+
+    def get_answer(self, question, chat_history: List[Tuple[str, str]]):
+        context = ROOT_CONTEXT.\
+            replace('[PROJECT_DESCRIPTION]', PROJECT_DESCRIPTION).\
+            replace('[CHAT_LOG]', self._format_chat_history(chat_history))
+
+        prompt = ROOT_PROMPT.replace('[QUESTION]', question)
+        self._on_step("The way to answer will be selected...", "Context: " + context + "\nPrompt: " + prompt)
+        result = self.ai_core.get_short_conversation_result(prompt, 2, context)
+        result = get_idx_from_response(result)
+
+        if result == 1:
+            self._on_step("The sources investigations is required to answer.", None)
+            return self.tree.get_answer(question)
+        elif result == 4:
+            self._on_step("The documentation investigations is required to answer.", None)
+            self._on_step("The documentation investigations is not implemented yet.", None, SELECTED_TEXT)
+            return None
+        elif result == 2:
+            self._on_step("The keywords index investigations is required to answer.", None)
+            prompt = KEYWORD_PROMPT.replace('[QUESTION]', question)
+            result = self.ai_core.get_short_conversation_result(prompt, 5, context)
+            self._on_step("Looking for the keyword: " + result, prompt)
+            results = []
+
+            if context.find(result) != -1 or question.find(result) != -1:
+                results = [item for item in self.keywords.find_keyword(result)]
+
+            if len(results) > 20:
+                self._on_step("Too many findings - the sources investigations is required to answer.", None)
+                return self.tree.get_answer(question)
+
+            for path in results:
+                result = self.tree.check_file(path, question)
+
+                if result:
+                    return result
+            self._on_step("No findings - the sources investigations is required to answer.", None)
+            return self.tree.get_answer(question)
+        elif result == 3:
+            self._on_step("No sources/documentation investigation is required to answer.", None)
+            prompt = IMMEDIATELY_PROMPT.replace('[QUESTION]', question)
+            result = self.ai_core.get_short_conversation_result(prompt, 200, context)
+            self._on_step(result, prompt, SELECTED_TEXT)
+            return result, None
+
+        self._on_step("Too many findings - the sources investigations is required to answer.", None, SELECTED_TEXT)
+        return None, None
 
     def get_tree(self):
         items = self.storage.get_all()
@@ -39,7 +90,7 @@ class KnowlegeBase:
 
     def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
-
+        self.keywords = KeywordsIndex(project_path, self.code_suffices, self.callback)
         # self._clear_brocken()
 
         def dfs(path):
@@ -75,9 +126,12 @@ class KnowlegeBase:
         dfs(project_path)
         self._create_questions(project_path)
 
-    def _on_step(self, short_name, description):
+    def _format_chat_history(self, history):
+        return "".join(role + ": " + message + "\n" for role, message in history)
+
+    def _on_step(self, short_name, description, kind=NORMAL_TEXT):
         if self.callback:
-            self.callback(short_name, description)
+            self.callback(short_name, description, kind)
 
     def _clear_brocken(self):
         print("Broken will be cleaned")
