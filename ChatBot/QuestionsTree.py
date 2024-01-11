@@ -37,12 +37,12 @@ class QuestionsTree:
     def get_answer(self, question: str, ignore_topic = None):
         return self._get_answer(question, self.main_topics)
 
-    def _get_corresponding_item(self, question, items):
+    def _get_corresponding_item(self, question, items, items_count):
         context = WHICH_TOPIC_IS_CLOSEST_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)
         prompt = WHICH_TOPIC_IS_CLOSEST_PROMT.replace("[QUESTION]", question). \
             replace("[TOPICS_WITH_NUMBERS]", items)
 
-        self._on_step(f"Find corresponding topic from {len(question)} items.", prompt)
+        self._on_step(f"Find corresponding topic from {items_count} items.", prompt)
         result = self.ai_core.get_short_conversation_result(prompt, 2, context)
         idx = get_idx_from_response(result)
         self._on_step(f"Selected item with id={idx}.", None)
@@ -50,7 +50,7 @@ class QuestionsTree:
 
     def _get_answer(self, question: str, topics_dict: dict, ignore_topic = None):
         topics = [t for t in topics_dict.keys() if t != ignore_topic]
-        topic_id = self._get_corresponding_item(question, get_items_with_numbers(topics))
+        topic_id = self._get_corresponding_item(question, get_items_with_numbers(topics), len(topics))
         topic = topics[topic_id - 1]
         questions = topics_dict[topic]
 
@@ -61,7 +61,7 @@ class QuestionsTree:
         else:
             for i in range(0, len(questions), 10):
                 cur_questions = questions[i: i + 10]
-                question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions))
+                question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions), len(cur_questions))
                 cur_question = cur_questions[question_id - 1]
 
                 result, path = self._check_file(self.questions2files[cur_question], question)
@@ -111,7 +111,7 @@ class QuestionsTree:
         result = self.ai_core.get_short_conversation_result(prompt, 100, context)
 
         if result.find("__NOTHING__") == -1:
-            self._on_step(f"Found some relevant info.", result)
+            self._on_step(f"Found the answer: " + result, file_content)
             return result, path
 
         self._on_step(f"No relevant info was found.", result)

@@ -16,6 +16,7 @@ class Dialog(tk.Tk):
         self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
         self.entry = tk.Entry(self.bottom_frame)
         self.entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        self.entry.insert(0, "How the camera focus is processed?")
         self.submit_button = tk.Button(self.bottom_frame, text="Submit query", command=self.submit_query)
         self.submit_button.pack(side=tk.RIGHT, padx=5)
 
@@ -35,6 +36,8 @@ class Dialog(tk.Tk):
 
         # Bind the item click event
         self.tree.bind('<Double-1>', self.show_details)
+
+        self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
 
     def clean(self):
         for child in self.tree.get_children():
@@ -60,8 +63,24 @@ class Dialog(tk.Tk):
         self.entry.delete(0, tk.END)
 
     def add_log_entry(self, summary, details):
+        max_width = 100  # Maximum width for each line
+        words = summary.split()
+        lines = []
+        current_line = ""
+        for word in words:
+            if len(current_line) + len(word) + 1 <= max_width:
+                current_line += " " + word
+            else:
+                lines.append(current_line.strip())
+                current_line = word
+        if current_line:
+            lines.append(current_line.strip())
+
         # Add a parent item
-        new_item = self.tree.insert('', 'end', text=summary, values=(summary, '[Click to expand]'))
+        new_item = self.tree.insert('', 'end', text=lines[0], values=("".join(l + "n" for l in lines),), open=True)
+        #for line in lines[1:]:
+        #    self.tree.insert(new_item, "end", text=line)  # Insert subsequent lines as child items
+
         self.items2details[new_item] = details
         self.update()
 
