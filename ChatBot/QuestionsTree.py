@@ -76,9 +76,9 @@ class QuestionsTree:
 
         return answer
 
-    def _on_step(self, short_name, description):
+    def _on_step(self, short_name, description, kind=NORMAL_TEXT):
         if self.callback:
-            self.callback(short_name, description)
+            self.callback(short_name, description, kind)
 
     def _get_topic_for_question(self, question: str, topics_dict: dict) -> str:
         topics = list(topics_dict.keys())
@@ -93,6 +93,18 @@ class QuestionsTree:
         return topics[topic_id - 1] if topic_id < len(topics) else None
 
     def _check_file(self, path, question):
+        found_answer = False
+
+        def check_answer( answer):
+            nonlocal found_answer
+
+            if answer.find("__NOTHING__") == -1:
+                self._on_step(f"Found the answer: " + answer, file_content, SELECTED_TEXT)
+                found_answer = True
+                return False
+
+            return True
+
         file_content = get_file_content(path)
         parent = os.path.dirname(path)
         parent_info = self.storage.get_json(get_file_id(parent))
@@ -108,10 +120,15 @@ class QuestionsTree:
             replace("[SOURCES]", file_content)
 
         self._on_step(f"Check file {file_name} content.", "Context: \n" + context + "\nPrompt:\n" + prompt)
-        result = self.ai_core.get_short_conversation_result(prompt, 100, context)
 
-        if result.find("__NOTHING__") == -1:
-            self._on_step(f"Found the answer: " + result, file_content)
+        result = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
+                                                                   ONLY_RELATED_ITEM_NAME_PROMPT,
+                                                                   check_answer,
+                                                                   100,
+                                                                   context)
+
+        if found_answer:
+            self._on_step(result, file_content, ITEM_TO_HIGHLIGHT)
             return result, path
 
         self._on_step(f"No relevant info was found.", result)

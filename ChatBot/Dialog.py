@@ -1,13 +1,16 @@
 import tkinter
 import tkinter as tk
 from tkinter import ttk
+from ChatBot.Constants import *
+import re
 
 class Dialog(tk.Tk):
     def __init__(self):
         super().__init__()
 
         self.info_provider = None
-        self.items2details = dict()
+        self.lines2details = dict()
+        self.cur_line = 0
 
         self.title("Please ask the question")
         self.geometry("800x1000")
@@ -20,30 +23,21 @@ class Dialog(tk.Tk):
         self.submit_button = tk.Button(self.bottom_frame, text="Submit query", command=self.submit_query)
         self.submit_button.pack(side=tk.RIGHT, padx=5)
 
-        self.tree = ttk.Treeview(self)
-        self.tree.pack(expand=True, fill='both', side=tk.TOP)
-
-        # Define columns
-        self.tree['columns'] = ('summary')
-
-        # Format columns
-        self.tree.column('#0', width=0, stretch=tk.NO)
-        self.tree.column('summary', anchor=tk.W, width=800)
-
-        # Create headings
-        self.tree.heading('#0', text='', anchor=tk.W)
-        self.tree.heading('summary', text='Summary', anchor=tk.W)
+        self.log = tk.Text(self)
+        self.log.pack(expand=True, fill='both', side=tk.TOP)
+        self.log.tag_configure("color_tag", foreground="green")
 
         # Bind the item click event
-        self.tree.bind('<Double-1>', self.show_details)
+        self.log.bind('<Double-1>', self.show_details)
+        self.item_to_highlight = None
 
-        self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
+        #self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
 
     def clean(self):
-        for child in self.tree.get_children():
-            self.tree.delete(child)
+        self.log.delete("1.0", tk.END)
 
-        self.items2details.clear()
+        self.lines2details.clear()
+        self.cur_line = 0
 
 
     def set_provider(self, info_provider):
@@ -62,42 +56,51 @@ class Dialog(tk.Tk):
 
         self.entry.delete(0, tk.END)
 
-    def add_log_entry(self, summary, details):
-        max_width = 100  # Maximum width for each line
-        words = summary.split()
-        lines = []
-        current_line = ""
-        for word in words:
-            if len(current_line) + len(word) + 1 <= max_width:
-                current_line += " " + word
-            else:
-                lines.append(current_line.strip())
-                current_line = word
-        if current_line:
-            lines.append(current_line.strip())
+    def add_log_entry(self, summary, details, kind):
+        if kind == ITEM_TO_HIGHLIGHT:
+            self.item_to_highlight = summary
 
-        # Add a parent item
-        new_item = self.tree.insert('', 'end', text=lines[0], values=("".join(l + "n" for l in lines),), open=True)
-        #for line in lines[1:]:
-        #    self.tree.insert(new_item, "end", text=line)  # Insert subsequent lines as child items
+        self.log.insert('end', summary + "\n")
+        self.lines2details[self.cur_line] = details
+        self.cur_line += 1
 
-        self.items2details[new_item] = details
+        if kind != NORMAL_TEXT:
+            self.log.tag_add("color_tag", str(self.cur_line) + ".0", str(self.cur_line) + "." + str(len(summary)))
+
         self.update()
 
+    def highlight_text(self, entry, text):
+        pattern = re.compile(f"\b{text}\b")
+        start = "1.0"
+
+        while True:
+            match = pattern.search(text.get(start, tk.END))
+            if not match:
+                break
+            start = f"{match.start()}+{start}"
+            end = f"{match.end()}+{start}"
+            entry.tag_add("color_tag", start, end)
+
     def show_details(self, event):
-        item = self.tree.selection()[0]
+        index = self.log.index(tk.CURRENT)
+        line_number = int(index.split('.')[0]) - 1
+
         # Check if the item clicked is a parent item
-        if not self.tree.parent(item):
+        if line_number in self.lines2details:
             # Create a new Toplevel window
             detail_window = tk.Toplevel(self)
             detail_window.title("Log Details")
             detail_window.geometry("1000x1000")
             # Create a text widget and insert the details
             text = tk.Text(detail_window, wrap='word')
-            text.insert(tk.END, self.items2details[item])
+            text.insert(tk.END, self.lines2details[line_number])
             text.pack(expand=True, fill='both', padx=5, pady=5)
+            self.log.tag_configure("color_tag", foreground="green")
             # Make the text widget read-only
             text.config(state=tk.DISABLED)
             # Add a close button
             close_button = tk.Button(detail_window, text="Close", command=detail_window.destroy)
             close_button.pack(side=tk.BOTTOM, pady=5)
+
+            if self.item_to_highlight:
+                self.highlight_text(text, self.item_to_highlight)

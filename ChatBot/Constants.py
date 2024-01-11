@@ -9,3 +9,7 @@ NODE_1 = "node_1"
 NODE_2 = "node_2"
 EDGE = "edge"
 MAIN_TOPICS_ID = "__MAIN_TOPICS__"
+
+NORMAL_TEXT = 1
+SELECTED_TEXT = 2
+ITEM_TO_HIGHLIGHT = 3

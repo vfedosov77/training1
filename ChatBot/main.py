@@ -3,12 +3,13 @@ import os
 from Gpt35AICore import Gpt35AICore
 from KnowlegeBase import KnowlegeBase
 from Dialog import Dialog
+from Constants import *
 
 app = Dialog()
 
 
-def on_step_callback(summary, details):
-    app.add_log_entry(summary, details)
+def on_step_callback(summary, details, kind=NORMAL_TEXT):
+    app.add_log_entry(summary, details, kind)
 
 
 ai_core = Gpt35AICore()

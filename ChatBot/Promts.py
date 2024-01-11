@@ -126,6 +126,6 @@ This is the sources of the file '[FILE_NAME]':
 Please do not forget to add in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
 """
 
-
+ONLY_RELATED_ITEM_NAME_PROMPT = "WRITE ONLY THE NAME OF THE ITEM"
 
 # Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:
