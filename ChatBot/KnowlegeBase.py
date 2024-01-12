@@ -74,8 +74,8 @@ class KnowlegeBase:
             self._on_step(result, prompt, SELECTED_TEXT)
             return result, None
 
-        self._on_step("Too many findings - the sources investigations is required to answer.", None, SELECTED_TEXT)
-        return None, None
+        self._on_step("The sources investigations is required to answer.", str(result), SELECTED_TEXT)
+        return self.tree.get_answer(question)
 
     def get_tree(self):
         items = self.storage.get_all()
