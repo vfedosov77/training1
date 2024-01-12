@@ -36,9 +36,9 @@ Listed below are the files with minimal details:
 
 [FILES_DESCRIPTION]
 
-Please integrate these themes or functionalities to provide a holistic understanding of the directory's purpose and role, 
-rather than elaborating on individual file contents. 
-Please don't mention each file - we need only the functionality of the whole directory."""
+Integrate these themes or functionalities to provide a holistic understanding of the directory's purpose and role,
+rather than elaborating on individual file contents.
+Don't mention each file - we need only the functionality of the whole directory."""
 
 FILES_QUESTIONS_GENERATOR_PROMPT = \
 """I am working on a project which can be described as '[PROJECT_DESCRIPTION]'. 
@@ -62,8 +62,8 @@ FILES_QUESTIONS_PROMPT = \
 
 
 
-Please take into account that a FAQ's user probably don't know about that file and the classes/functions inside of it. 
-He probably has a related bug or he investigates the project asking questions. You should provide for each topic only one short sentence. Also please add the number at the beginning."""
+Take into account that a FAQ's user probably don't know about that file and the classes/functions inside of it.
+He probably has a related bug or he investigates the project asking questions. You should provide for each topic only one short sentence. Also add the number at the beginning."""
 
 
 GROUP_QUESTIONS_PROMPT = """I am creating FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'
@@ -92,7 +92,7 @@ These topic contains the following questions:
 
 [QUESTIONS_WITH_NUMBERS]
 
-Please provide the list of the subtopics."""
+Provide the list of the subtopics."""
 
 TOPIC_FOR_QUESTION_PROMPT = """We have the following main topics in our FAQ for the software project "[PROJECT_DESCRIPTION]":
 [TOPICS_WITH_NUMBERS]
@@ -100,38 +100,50 @@ Your subtopic "[QUESTION]" I would put into the main topic number """
 
 ###############################################################################################
 
-WHICH_TOPIC_IS_CLOSEST_CONTEXT = """You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+WHICH_TOPIC_IS_CLOSEST_CONTEXT = """You are a software developer of a software project which can be described as:
+###Project description###
+'[PROJECT_DESCRIPTION]'
+
+###Instruction###
 This project is big and you are not familiar with all the parts of the project. 
 But there is FAQ for that project which can help you to find quickly all the required info about the project.
 This FAQ is structured and all the questions there are split into topics."""
 
-WHICH_TOPIC_IS_CLOSEST_PROMT = """You need an answer for the question '[QUESTION]'.
+WHICH_TOPIC_IS_CLOSEST_PROMT = """You need an answer for the question:
+'[QUESTION]'
+
+
 Which of the following FAQ topics can contain the answer:
 [TOPICS_WITH_NUMBERS]
-Please PROVIDE ONLY THE NUMBER of the topic."""
+
+
+PROVIDE ONLY THE NUMBER of the topic."""
 
 CHECK_THE_FILE_CONTEXT = """You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
 This project is big and you are not familiar with all the parts of the project.
 Now you are working with one of the source files of a folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
 
 CHECK_THE_FILE_PROMPT = """Your task is to find a place in the code which is related to the question:
- 
 [QUESTION]
  
-If there is such a place then please write the name of the most related item (class, method, function, variable etc.). If you think that the file contains no code which is closely related to the question - write '__NOTHING__' in your answer.
+
+###Instruction###
+If there is such a place then write the name of the most related item (class, method, function, variable etc.). If the file contains no code which is closely related to the question - write '__NOTHING__' in your answer.
 This is the sources of the file '[FILE_NAME]':
+
 
 [SOURCES]
 
 
-So please answer the question:
-[QUESTION]
-Please do not forget to add in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
+So the question is: [QUESTION]
+
+
+Write in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
 """
 
 ONLY_RELATED_ITEM_NAME_PROMPT = "WRITE ONLY THE NAME OF THE ITEM"
 
-ONLY_NUMBER_PROMPT = "PLEASE PROVIDE ONLY THE NUMBER"
+ONLY_NUMBER_PROMPT = "WRITE ONLY THE NUMBER"
 
 # Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:
 
@@ -147,11 +159,11 @@ ROOT_PROMPT = """Which one of the following actions would you prefer to answer t
 1. See source code of the project.
 2. See the project keywords index.
 3. Can provide the answer immediately - no further investigation is needed.
-PLEASE PROVIDE ONLY THE NUMBER OF ACTION"""
+WRITE ONLY THE NUMBER OF ACTION"""
 #4. See the documentation
 #Only one word can be checked - so you must be sure.
 
 KEYWORD_PROMPT = """Which keyword in the keywords index would you find to answer the following question of your colleague '[QUESTION]':
-PLEASE PROVIDE ONLY THE KEYWORD"""
+WRITE ONLY THE KEYWORD"""
 
-IMMEDIATELY_PROMPT = """Please answer the following question of the colleague: '[QUESTION]'"""
+IMMEDIATELY_PROMPT = """Answer the following question of the colleague: '[QUESTION]'"""
