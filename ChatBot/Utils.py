@@ -1,8 +1,8 @@
 from typing import List
-
+import os, sys
 
 MAX_SYMBOLS_TO_READ = 25000
-
+LOCAL_PATH = os.environ.get("LOCAL_PATH")
 
 def remove_line_number(line, sep):
     idx = line.find(sep)
@@ -55,7 +55,8 @@ def get_idx_from_response(response: str):
 
 
 def get_local_path(path):
-    return path.replace("/content/drive/MyDrive/Sources/", "/home/q548040/Downloads/ParallelWorld/")
+    return path.replace("/content/drive/MyDrive/Sources/", LOCAL_PATH).\
+        replace("/home/q548040/Downloads/ParallelWorld/", LOCAL_PATH)
 
 
 def get_file_content(path):
@@ -78,5 +79,6 @@ def get_file_content(path):
     return text
 
 def get_file_id(path):
-    path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/")
+    path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/").\
+        replace(LOCAL_PATH, "/content/drive/MyDrive/Sources/").replace("\\", "/")
     return path

@@ -4,6 +4,7 @@ from Gpt35AICore import Gpt35AICore
 from KnowlegeBase import KnowlegeBase
 from Dialog import Dialog
 from Constants import *
+from ChatBot.Utils import *
 
 app = Dialog()
 
@@ -15,7 +16,7 @@ def on_step_callback(summary, details, kind=NORMAL_TEXT):
 ai_core = Gpt35AICore()
 base = KnowlegeBase(ai_core, on_step_callback)
 
-base.discover_project("/home/q548040/Downloads/ParallelWorld/ParallelWorld/")
+base.discover_project(get_local_path("/home/q548040/Downloads/ParallelWorld/ParallelWorld/"))
 tree = base.get_tree()
 
 app.set_provider(base)
