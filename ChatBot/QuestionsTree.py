@@ -48,7 +48,7 @@ class QuestionsTree:
             replace("[TOPICS_WITH_NUMBERS]", items)
 
         self._on_step(f"Find corresponding topic from {items_count} items.", prompt)
-        result = self.ai_core.get_short_conversation_result(prompt, 2, context)
+        result = self.ai_core.get_short_question_result(prompt, 2, context)
         idx = get_idx_from_response(result)
         self._on_step(f"Selected item with id={idx}.", None)
         return idx

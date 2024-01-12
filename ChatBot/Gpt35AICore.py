@@ -26,27 +26,26 @@ class Gpt35AICore:
         print("Response: " + str(response))
         return response
 
-    # def get_short_conversation_result(self, prompt, max_answer_tokens, context=""):
-    #     print("Context: " + context + "\nPrompt: " + prompt)
-    #
-    #     messages = [
-    #         {"role": "system", "content": context},
-    #         {"role": "user", "content": prompt}
-    #     ]
-    #
-    #     response = self.client.chat.completions.create(
-    #         model="gpt-3.5-turbo-1106",
-    #         messages=messages,
-    #         max_tokens=max_answer_tokens  # Adjust as needed
-    #     )
-    #
-    #     response = response.choices[0].message.content
-    #     print("Response: " + str(response))
-    #     return response
+    def get_short_question_result(self, prompt, max_answer_tokens, context=""):
+        print("Context: " + context + "\nPrompt: " + prompt)
+
+        prompt = context +  "\n\nQuestion: " + prompt
+
+        response = self.client.completions.create(
+            model="gpt-3.5-turbo-instruct",
+            prompt=prompt,
+            max_tokens=max_answer_tokens,  # Adjust as needed
+            temperature=0.0
+        )
+
+        response = response.choices[0].text.strip()
+        print("Response: " + str(response))
+        return response
 
     def get_conversation_result(self, callback, max_answer_tokens, context=""):
         print("Context: " + context)
         prompt = callback(0, None)
+        cur_len = len(context)
 
         messages = [
             {"role": "system", "content": context},
@@ -54,13 +53,24 @@ class Gpt35AICore:
 
         for i in range(1, MAX_CONVERSATION_STEPS):
             print("Prompt: " + prompt)
+            cur_len += len(prompt)
+
             messages.append({"role": "user", "content": prompt})
 
+            #if cur_len > 12000:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo-1106",
                 messages=messages,
                 max_tokens=max_answer_tokens  # Adjust as needed
             )
+            #else:
+                # response = self.client.completions.create(
+                #     model="gpt-3.5-turbo-instruct",
+                #     messages=messages,
+                #     max_tokens=max_answer_tokens  # Adjust as needed,
+                # temperature=0
+                # )
+
 
             answer = response.choices[0].message.content
             print("Response: " + str(answer))
@@ -70,6 +80,7 @@ class Gpt35AICore:
             if prompt is None:
                 return answer
 
+            cur_len += len(answer)
             received_message = response.choices[0].message
             messages.append({"role": received_message.role, "content": received_message.content})
 
