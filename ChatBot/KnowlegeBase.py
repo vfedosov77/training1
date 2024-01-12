@@ -63,7 +63,7 @@ class KnowlegeBase:
             for path in results:
                 result = self.tree.check_file(path, question)
 
-                if result:
+                if result and result[0] is not None:
                     return result
             self._on_step("No findings - the sources investigations is required to answer.", None)
             return self.tree.get_answer(question)
