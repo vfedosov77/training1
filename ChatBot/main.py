@@ -68,7 +68,7 @@ base = KnowlegeBase(ai_core, on_step_callback)
 base.discover_project(get_local_path("/home/q548040/Downloads/ParallelWorld/ParallelWorld/"))
 tree = base.get_tree()
 
-test()
+#test()
 
 app.set_provider(base)
 app.mainloop()
