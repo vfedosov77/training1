@@ -9,9 +9,11 @@ from collections import defaultdict
 
 
 app = Dialog()
-
+answer_found = False
 
 def test():
+    global answer_found
+
     questions = ["Where is the main view of the application defined?",
         "I have a bug: the camera focus does not work.",
         "Is there any code related to data bases?",
@@ -29,15 +31,19 @@ def test():
     results = defaultdict(float)
 
     for question in questions:
+        answer_found = False
+        app.add_role_message("Test",question)
         result = base.get_answer(question, [])
 
-        if result is not None:
+        if answer_found:
             correct_count += 1
             results[question] += 0.5
 
+        answer_found = False
+        app.add_role_message("Test", question)
         result = base.get_answer(question, [])
 
-        if result is not None:
+        if answer_found:
             correct_count += 1
             results[question] += 0.5
 
@@ -49,6 +55,10 @@ def test():
 
 
 def on_step_callback(summary, details, kind=NORMAL_TEXT):
+    global answer_found
+    if summary.startswith("Found the answer:"):
+        answer_found = True
+
     app.add_log_entry(summary, details, kind)
 
 
@@ -58,8 +68,7 @@ base = KnowlegeBase(ai_core, on_step_callback)
 base.discover_project(get_local_path("/home/q548040/Downloads/ParallelWorld/ParallelWorld/"))
 tree = base.get_tree()
 
-#test()
-#exit(0)
+test()
 
 app.set_provider(base)
 app.mainloop()

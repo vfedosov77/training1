@@ -120,8 +120,8 @@ class QuestionsTree:
         def check_answer( answer):
             nonlocal found_answer
 
-            if answer.find("__NOTHING__") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
-                header = "Found the answer: " if answer.find("__NOTHING__") == -1 else "Found a relevant info: "
+            if answer.find("NOTHING") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
+                header = "Found the answer: " if answer.find("NOTHING") == -1 else "Found a relevant info: "
                 self._on_step(header + answer.replace("__NOTHING__", "NOT_SURE"), file_content, SELECTED_TEXT)
                 found_answer = True
                 return False

@@ -167,3 +167,5 @@ KEYWORD_PROMPT = """Which keyword in the keywords index would you find to answer
 WRITE ONLY THE KEYWORD"""
 
 IMMEDIATELY_PROMPT = """Answer the following question of the colleague: '[QUESTION]'"""
+
+# You will be penalized
