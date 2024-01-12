@@ -122,8 +122,7 @@ class QuestionsTree:
         file_content = get_file_content(path)
         parent = os.path.dirname(path)
         parent_info = self.storage.get_json(get_file_id(parent))
-        assert parent_info
-        parent_desc = parent_info[DESCRIPTION_FIELD]
+        parent_desc = parent_info[DESCRIPTION_FIELD] if parent_info else "No description available"
         file_name = os.path.basename(path)
 
         context = CHECK_THE_FILE_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)\

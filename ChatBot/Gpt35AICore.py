@@ -1,7 +1,11 @@
 import openai
 import os, sys
 
+from ChatBot.Utils import *
+from ChatBot.Promts import *
+
 MAX_CONVERSATION_STEPS=5
+
 
 class Gpt35AICore:
     def __init__(self):
@@ -111,3 +115,14 @@ class Gpt35AICore:
 
         self.get_conversation_result(callback, max_answer_tokens, context)
         return (answers[0], answers[1])
+
+    def get_number_result(self, prompt, max_answer_tokens, context):
+        def check_number(response):
+            idx = get_idx_from_response(response)
+            return idx is not None
+
+        return self.get_1_or_2_steps_conversation_result(prompt,
+                                                         ONLY_NUMBER_PROMPT,
+                                                         check_number,
+                                                         max_answer_tokens,
+                                                         context)

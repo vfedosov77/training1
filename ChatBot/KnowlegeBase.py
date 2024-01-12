@@ -181,14 +181,14 @@ class KnowlegeBase:
         if not children:
             raise ValueError()
 
-        print("Dir: " + path)
+        #print("Dir: " + path)
 
         dir_json = self.storage.get_json(dir_id)
         if dir_json:
             if dir_json[KIND_FIELD] == BROKEN_KIND:
                 make_short_request = True
             else:
-                print("Info was found for the directory: " + path)
+                #print("Info was found for the directory: " + path)
                 return dir_id
 
         files_descriptions = []
@@ -242,7 +242,7 @@ class KnowlegeBase:
         if not is_code:# and not is_doc:
             raise ValueError()
 
-        print("File: " + path)
+        #print("File: " + path)
 
         file_id = get_file_id(path)
         file_json = self.storage.get_json(file_id)
@@ -252,7 +252,7 @@ class KnowlegeBase:
                 print("File was not parsed because of memory error previously: " + path)
                 raise ValueError()
 
-            print("Info was found for the file: " + path)
+            #print("Info was found for the file: " + path)
             return file_id
 
         text = get_file_content(path)
@@ -333,7 +333,7 @@ class KnowlegeBase:
             return
 
         if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
-            print("Found questions for the file " + path)
+            #print("Found questions for the file " + path)
             return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]

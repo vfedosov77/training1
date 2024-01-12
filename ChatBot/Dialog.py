@@ -27,7 +27,7 @@ class Dialog(tk.Tk):
 
         self.entry = tk.Entry(self, width=40)
         self.entry.grid(row=2, column=0, sticky="NSEW")
-        self.entry.insert(0, "How the camera focus is processed?")
+        self.entry.insert(0, "") # How the camera focus is processed?")
         self.submit_button = tk.Button(self, text="Submit", command=self.submit_query, width=5)
         self.submit_button.grid(row=2, column=1)
 

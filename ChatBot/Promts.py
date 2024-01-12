@@ -128,6 +128,8 @@ Please do not forget to add in your message __NOTHING__ keyword if you think tha
 
 ONLY_RELATED_ITEM_NAME_PROMPT = "WRITE ONLY THE NAME OF THE ITEM"
 
+ONLY_NUMBER_PROMPT = "PLEASE PROVIDE ONLY THE NUMBER"
+
 # Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:
 
 #############################################################################
