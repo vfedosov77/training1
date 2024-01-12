@@ -41,12 +41,22 @@ def get_comma_separated_ids(response):
 
 
 def get_idx_from_response(response: str):
+    response = response.strip()
     result = response.strip()[:2]
 
     if len(result) > 1 and not str.isalnum(result[1]):
         result = result[0]
 
     if not str.isnumeric(result):
+        items = response.split()
+
+        if len(items) > 1:
+            # Try all the items
+            for item in items:
+                res = get_idx_from_response(item)
+                if res is not None:
+                    return res
+
         print("Cannot parse index: " + (result if result else "None"))
         return None
 

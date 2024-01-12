@@ -123,6 +123,9 @@ This is the sources of the file '[FILE_NAME]':
 
 [SOURCES]
 
+
+So please answer the question:
+[QUESTION]
 Please do not forget to add in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
 """
 

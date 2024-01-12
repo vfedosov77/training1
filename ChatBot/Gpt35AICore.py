@@ -57,20 +57,18 @@ class Gpt35AICore:
 
             messages.append({"role": "user", "content": prompt})
 
-            #if cur_len > 12000:
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo-1106",
-                messages=messages,
-                max_tokens=max_answer_tokens  # Adjust as needed
-            )
-            #else:
-                # response = self.client.completions.create(
-                #     model="gpt-3.5-turbo-instruct",
-                #     messages=messages,
-                #     max_tokens=max_answer_tokens  # Adjust as needed,
-                # temperature=0
-                # )
-
+            if cur_len > 10000:
+                response = self.client.chat.completions.create(
+                    model="gpt-3.5-turbo-1106",
+                    messages=messages,
+                    max_tokens=max_answer_tokens
+                )
+            else:
+                response = self.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    max_tokens=max_answer_tokens
+                )
 
             answer = response.choices[0].message.content
             print("Response: " + str(answer))

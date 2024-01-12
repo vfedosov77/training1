@@ -48,14 +48,23 @@ class QuestionsTree:
             replace("[TOPICS_WITH_NUMBERS]", items)
 
         self._on_step(f"Find corresponding topic from {items_count} items.", prompt)
-        result = self.ai_core.get_short_question_result(prompt, 2, context)
+        result = self.ai_core.get_short_conversation_result(prompt, 20, context)
         idx = get_idx_from_response(result)
         self._on_step(f"Selected item with id={idx}.", None)
         return idx
 
     def _get_answer(self, question: str, topics_dict: dict, ignore_topic = None):
         topics = [t for t in topics_dict.keys() if t != ignore_topic]
-        topic_id = self._get_corresponding_item(question, get_items_with_numbers(topics), len(topics))
+        with_numbers = get_items_with_numbers(topics)
+
+        topic_id = self._get_corresponding_item(question, with_numbers, len(topics))
+        if topic_id is None:
+            #topic_id = self._get_corresponding_item(question, with_numbers, len(topics))
+            #if topic_id is None:
+            self._on_step("Error during the request processing", None)
+            print("Some error during the request processing")
+            return None
+
         topic = topics[topic_id - 1]
         questions = topics_dict[topic]
 
