@@ -32,6 +32,7 @@ class DuplicationsFinder:
                 topics_to_simplify.append((list.copy(parents), cur_topics))
 
         search(iter(tree), [])
+        has_changes = False
 
         for parents, questions in topics_to_simplify:
             start_count = len(questions)
@@ -40,10 +41,12 @@ class DuplicationsFinder:
                 pass
 
             if len(questions) != start_count:
-
+                has_changes = True
                 callback(f"The amount of items reduced from {start_count} to {len(questions)}",
                          old_topics + "\n\n\n" + get_items_with_numbers(questions),
                          SELECTED_TEXT)
+
+        return has_changes
 
     @staticmethod
     def _check_if_questions_similar(id1, id2, questions, tree: QuestionsTree):
@@ -81,16 +84,21 @@ class DuplicationsFinder:
             if DuplicationsFinder._check_if_questions_similar(id2, id1, questions, tree):
                 id_to_remove = id2 if len(questions[id2]) < len(questions[id1]) else id1
                 id_to_leave = id2 if id_to_remove == id1 else id1
-                message = f"Questions '{questions[id_to_leave - 1]}' and '{questions[id_to_remove - 1]}' are similar"
-                print(message)
-                callback(message, None, NORMAL_TEXT)
                 to_remove = questions[id_to_remove - 1]
-                parents.append(to_remove)
-                tree.remove_node(parents)
+                to_leave = questions[id_to_leave - 1]
+
+                tree.merge_leaf_nodes(parents, to_leave, to_remove)
                 questions.remove(to_remove)
-                parents.pop()
+
+                DuplicationsFinder._add_log_info(callback, to_leave, to_remove)
                 return True
 
         return False
+
+    @staticmethod
+    def _add_log_info(callback, to_leave, to_remove):
+        message = f"Questions '{to_leave}' and '{to_remove}' are similar"
+        print(message)
+        callback(message, None, NORMAL_TEXT)
 
 

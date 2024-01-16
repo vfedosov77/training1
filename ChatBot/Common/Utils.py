@@ -108,3 +108,15 @@ def get_file_id(path):
     path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/").\
         replace(LOCAL_PATH, "/content/drive/MyDrive/Sources/").replace("\\", "/")
     return path
+
+
+def contains_all(self, collection1: set, collection2: set or list):
+    assert isinstance(collection2, set) or isinstance(collection2, list)
+
+    for item in collection2:
+        if item not in collection1:
+            return False
+
+    return True
+
+

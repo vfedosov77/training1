@@ -5,7 +5,7 @@ from ChatBot.Common.Utils import *
 from ChatBot.AI.AiCoreBase import AiCoreBase
 
 import os
-from typing import Dict, List
+from typing import Dict, List, Set
 from ChatBot.Common.Constants import *
 
 
@@ -39,7 +39,7 @@ class QuestionsTree:
             return QuestionsTree.Iterator(children)
 
     def __init__(self,
-                 questions2files: Dict[str, str],
+                 questions2files: Dict[str, Set[str]],
                  main_topics: Dict[str, List[str]],
                  ai_core: AiCoreBase,
                  storage: JSONDataStorage,
@@ -62,19 +62,21 @@ class QuestionsTree:
     def __iter__(self):
         return QuestionsTree.Iterator(self.main_topics)
 
-    def remove_node(self, path, check_if_leaf=True):
-        cur_item = self.main_topics
-
-        for item in path[:-1]:
-            cur_item = cur_item[item]
-
-        assert cur_item
+    def remove_node(self, path: List[str], item: str, check_if_leaf=True):
+        cur_item = self._get_node_by_path(path)
 
         if isinstance(cur_item, dict):
             assert not check_if_leaf
-            del cur_item[path[-1]]
+            del cur_item[item]
         else:
-            cur_item.remove(path[-1])
+            cur_item.remove(item)
+
+        del self.questions2files[item]
+
+    def merge_leaf_nodes(self, path: List[str], to_leave: str, to_remove: str):
+        files = self.questions2files[to_remove]
+        self.questions2files[to_leave].update(files)
+        self.remove_node(path, to_remove)
 
     def get_corresponding_item(self, question, items):
         with_numbers = get_items_with_numbers(items)
@@ -88,6 +90,15 @@ class QuestionsTree:
         idx = get_idx_from_response(result)
         self._on_step(f"Selected item with id={idx}.", None)
         return idx
+
+    def _get_node_by_path(self, path: List[str]):
+        cur_item = self.main_topics
+
+        for item in path:
+            cur_item = cur_item[item]
+
+        assert cur_item
+        return cur_item
 
     def _get_answer(self, question: str, topics_dict: dict, ignore_topic = None):
         topics = [t for t in topics_dict.keys() if t != ignore_topic]
@@ -108,7 +119,7 @@ class QuestionsTree:
         if isinstance(questions, dict):
             answer = self._get_answer(question, questions, None)
         else:
-            questions = [q for q in questions if self.questions2files[q] not in self.checked_files]
+            questions = [q for q in questions if not contains_all(self.checked_files, self.questions2files[q])]
 
             while len(questions) > 0:
                 cur_questions = questions[:MAX_ITEMS_IN_REQUEST]
@@ -117,16 +128,19 @@ class QuestionsTree:
                 if question_id is not None and question_id < len(cur_questions):
                     cur_question = cur_questions[question_id - 1]
 
-                    result, path = self.check_file(self.questions2files[cur_question], question)
+                    for file in self.questions2files[cur_question]:
+                        if file not in self.checked_files:
+                            result, path = self.check_file(file, question)
 
-                    if result:
-                        answer = (result, path)
-                        print("Answer: " + result + " File: " + path)
-                        break
+                            if result:
+                                answer = (result, path)
+                                print("Answer: " + result + " File: " + path)
+                                return answer
 
                 cur_questions = set(cur_questions)
                 questions = [q for q in questions
-                             if q not in cur_questions and self.questions2files[q] not in self.checked_files]
+                             if q not in cur_questions and
+                             not contains_all(self.checked_files, self.questions2files[q])]
 
         if answer is None and ignore_topic is None:
             return self._get_answer(question, topics_dict, topic)

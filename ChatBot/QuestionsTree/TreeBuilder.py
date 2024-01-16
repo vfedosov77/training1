@@ -7,34 +7,36 @@ from ChatBot.Prompts.PromptUtils import *
 from ChatBot.AI.AiCoreBase import AiCoreBase
 from ChatBot.QuestionsTree.DuplicationsFinder import DuplicationsFinder
 
-from typing import Dict
+from typing import Dict, Set
 
 
 class TreeBuilder:
     def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, callback):
-        questions2files = dict()
-        items = storage.get_all()
-
-        for item in items:
-            if QUESTIONS_FIELD in item:
-                questions2files.update(
-                    {question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
-
+        questions2files = self._fill_questions2files(storage)
         main_topics = self._fill_topics()
         main_topics = self._make_tree(main_topics, questions2files, storage, ai_core)
-        self._fill_questions2files(storage, questions2files)
 
         tree = QuestionsTree(questions2files, main_topics, ai_core, storage, callback)
-        DuplicationsFinder()(tree, ai_core, callback)
+
+        if DuplicationsFinder()(tree, ai_core, callback):
+            pass#tree.commit_changes(storage, tree.get_main_topics())
+
         return tree
 
     @staticmethod
-    def _fill_questions2files(storage, questions2files):
-        #TODO: check if we need that - seems it is done in __init__
+    def _commit_changes(storage, main_topics):
+        storage.insert_json(MAIN_TOPICS_ID, main_topics)
+
+    @staticmethod
+    def _fill_questions2files(storage):
+        questions2files: Dict[str, Set] = dict()
+
         for item in storage.get_all():
             if PATH_FIELD in item and QUESTIONS_FIELD in item:
                 path = item[PATH_FIELD]
-                questions2files.update({question: path for question in item[QUESTIONS_FIELD]})
+                questions2files.update({question: {path} for question in item[QUESTIONS_FIELD] if question.strip()})
+
+        return questions2files
 
     @staticmethod
     def _fill_topics():
@@ -98,7 +100,7 @@ class TreeBuilder:
             pass
 
         if has_changes:
-            storage.insert_json(MAIN_TOPICS_ID, result)
+            TreeBuilder._commit_changes(storage, result)
 
         return result
 
@@ -117,7 +119,7 @@ class TreeBuilder:
         all_questions = set(questions2files.keys())
         TreeBuilder._distribute_questions(all_questions, main_topics, ai_core)
 
-        storage.insert_json(MAIN_TOPICS_ID, main_topics)
+        TreeBuilder._commit_changes(storage, main_topics)
 
         #topics2questions = TreeBuilder._group_questions(questions2files)
         #TreeBuilder._fill_main_topics(topics2questions)
