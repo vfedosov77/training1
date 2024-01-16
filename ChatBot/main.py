@@ -3,11 +3,14 @@ from KnowlegeBase import KnowlegeBase
 from Dialog import Dialog
 from ChatBot.Common.Constants import *
 from ChatBot.Common.Utils import *
+from ChatBot.Prompts.PromptUtils import *
+
 from collections import defaultdict
 
 
 app = Dialog()
 answer_found = False
+set_project_description("Augmented reality engine for Android devices.")
 
 def test():
     global answer_found

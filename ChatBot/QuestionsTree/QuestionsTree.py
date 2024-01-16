@@ -1,4 +1,5 @@
 from ChatBot.Prompts.TopicsTreePrompts import *
+from ChatBot.Prompts.PromptUtils import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Utils import *
 
@@ -17,11 +18,28 @@ QUESTIONS_FOR_MAIN_TOPICS = QUESTIONS_PER_REQUEST * 2
 
 
 class QuestionsTree:
-    def __init__(self, questions2files: Dict[str, str], ai_core, proj_description, storage: JSONDataStorage, callback):
+    class Iterator:
+        def __init__(self, topics: [Dict | List]):
+            self.topics = topics
+            self.is_list = isinstance(topics, list)
+            self.iter = iter(self.topics) if self.is_list else iter(self.topics.keys())
+            self.current_item = None
+
+        def __next__(self):
+            self.current_item = next(self.iter)
+            return self.current_item
+
+        def has_children(self):
+            return not self.is_list
+
+        def to_children(self):
+            assert self.has_children()
+            return QuestionsTree.Iterator(self.topics[self.current_item])
+
+    def __init__(self, questions2files: Dict[str, str], ai_core, storage: JSONDataStorage, callback):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
-        self.proj_description = proj_description
         self.storage: JSONDataStorage = storage
         self.main_topics: Dict[str, List[str]] = None
         self.callback = callback
@@ -37,8 +55,11 @@ class QuestionsTree:
         finally:
             self.checked_files.clear()
 
+    def __iter__(self):
+        return QuestionsTree.Iterator(self.main_topics)
+
     def _get_corresponding_item(self, question, items, items_count):
-        context = WHICH_TOPIC_IS_CLOSEST_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)
+        context = add_project_description(WHICH_TOPIC_IS_CLOSEST_CONTEXT)
         prompt = WHICH_TOPIC_IS_CLOSEST_PROMT.replace("[QUESTION]", question). \
             replace("[TOPICS_WITH_NUMBERS]", items)
 
@@ -100,7 +121,7 @@ class QuestionsTree:
     def _get_topic_for_question(self, question: str, topics_dict: dict) -> str:
         topics = list(topics_dict.keys())
 
-        prompt = TOPIC_FOR_QUESTION_PROMPT.replace("[PROJECT_DESCRIPTION]", self.proj_description).\
+        prompt = add_project_description(TOPIC_FOR_QUESTION_PROMPT).\
             replace("[TOPICS_WITH_NUMBERS]", get_items_with_numbers(topics)).\
             replace("[QUESTION]", question.strip())
 
@@ -129,7 +150,7 @@ class QuestionsTree:
         parent_desc = parent_info[DESCRIPTION_FIELD] if parent_info else "No description available"
         file_name = os.path.basename(path)
 
-        context = CHECK_THE_FILE_CONTEXT.replace("[PROJECT_DESCRIPTION]", self.proj_description)\
+        context = add_project_description(CHECK_THE_FILE_CONTEXT)\
             .replace("[PARENT_FOLDER_DESCRIPTION]", parent_desc)
 
         prompt = CHECK_THE_FILE_PROMPT.replace("[QUESTION]", question). \

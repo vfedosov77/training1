@@ -1,4 +1,5 @@
 from ChatBot.Prompts.Prompts import *
+from ChatBot.Prompts.PromptUtils import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
 from ChatBot.KeywordsIndex import KeywordsIndex
@@ -10,7 +11,7 @@ import pathlib as pl
 import json
 from typing import List, Tuple
 
-PROJECT_DESCRIPTION = "Augmented reality engine for Android devices."
+
 
 SHORT_FOLDER_DESCRIPTION_SIZE = 3000
 SHORT_FILES_DESCRIPTION_SIZE = 5000
@@ -30,8 +31,7 @@ class KnowlegeBase:
         # self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
-        context = ROOT_CONTEXT.\
-            replace('[PROJECT_DESCRIPTION]', PROJECT_DESCRIPTION).\
+        context = add_project_description(ROOT_CONTEXT).\
             replace('[CHAT_LOG]', self._format_chat_history(chat_history))
 
         prompt = ROOT_PROMPT.replace('[QUESTION]', question)
@@ -85,7 +85,7 @@ class KnowlegeBase:
             if QUESTIONS_FIELD in item:
                 questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
 
-        self.tree = QuestionsTree(questions, self.ai_core, PROJECT_DESCRIPTION, self.storage, self.callback)
+        self.tree = QuestionsTree(questions, self.ai_core, self.storage, self.callback)
         return self.tree
 
     def discover_project(self, project_path: str):
@@ -306,17 +306,15 @@ class KnowlegeBase:
         tokens_count = self._get_tokens_count(file_content)
 
         if self.ai_core.is_generation_preferred():
-            prompt = "1. " + FILES_QUESTIONS_GENERATOR_PROMPT.replace("[FILE_NAME]", file_name). \
-                replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION). \
+            prompt = "1. " + add_project_description(FILES_QUESTIONS_GENERATOR_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
             response = self.ai_core.get_generated_text(prompt, tokens_count)
         else:
-            context = FILES_QUESTIONS_CONTEXT.replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION).\
+            context = add_project_description(FILES_QUESTIONS_CONTEXT).\
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc)
 
-            prompt = "1. " + FILES_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name). \
-                replace("[PROJECT_DESCRIPTION]", PROJECT_DESCRIPTION). \
+            prompt = "1. " + add_project_description(FILES_QUESTIONS_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
             response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
