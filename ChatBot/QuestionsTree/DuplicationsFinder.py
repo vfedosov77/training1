@@ -1,10 +1,11 @@
 from ChatBot.AI.AiCoreBase import AiCoreBase
-from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree, NORMAL_TEXT, SELECTED_TEXT
+from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree, NORMAL_TEXT, SELECTED_TEXT, MAX_ITEMS_IN_REQUEST
 from ChatBot.Prompts.QuestionsProccesingPrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.Common.Utils import *
 
 from typing import List
+import random
 
 
 class DuplicationsFinder:
@@ -37,8 +38,22 @@ class DuplicationsFinder:
         for parents, questions in topics_to_simplify:
             start_count = len(questions)
             old_topics = get_items_with_numbers(questions)
-            while len(questions) > 2 and self._find_duplication(questions, parents, tree, ai_core, callback):
-                pass
+
+            if len(questions) <= 8:
+                while len(questions) > 2 and self._find_duplication(questions, parents, tree, ai_core, callback):
+                    pass
+            else:
+                samples_count = (len(questions) // MAX_ITEMS_IN_REQUEST + 1) * 2
+
+                for _ in  range(samples_count):
+                    sample = random.sample(questions, min(len(questions), MAX_ITEMS_IN_REQUEST))
+                    was = set(sample)
+
+                    while len(sample) > 2 and self._find_duplication(sample, parents, tree, ai_core, callback):
+                        pass
+
+                    for item in was - set(sample):
+                        questions.remove(item)
 
             if len(questions) != start_count:
                 has_changes = True
@@ -74,6 +89,27 @@ class DuplicationsFinder:
         return False
 
     @staticmethod
+    def _get_question_to_remove(id1, id2, questions, ai_core: AiCoreBase, topic):
+        context = add_project_description(CHECK_DUPLICATION_CONTEXT).replace("[TOPIC_NAME]", topic)
+        prompt = CHECK_DUPLICATION_PROMPT.\
+            replace("[Question1]", questions[id1 - 1]).\
+            replace("[Question2]", questions[id2 - 1])
+
+        can_remove = ai_core.get_yes_no_result(prompt, context)
+
+        if can_remove:
+            prompt = GET_ITEM_TO_REMOVE_PROMPT. \
+                replace("[Question1]", questions[id1 - 1]). \
+                replace("[Question2]", questions[id2 - 1])
+
+            id_to_leave = ai_core.get_number_result(prompt, 10, context, 3)
+
+            if id_to_leave is not None:
+                return 1 if id_to_leave == 2 else 2
+
+        return None
+
+    @staticmethod
     def _find_duplication(questions, parents, tree: QuestionsTree, ai_core: AiCoreBase, callback):
         topic = parents[-1]
         context = add_project_description(FIND_DUPLICATIONS_CONTEXT).replace("[TOPIC_NAME]", topic)
@@ -81,9 +117,10 @@ class DuplicationsFinder:
         id1, id2 = ai_core.get_pair_of_ids_result(prompt, 20, context)
 
         if id1 is not None and id1 < len(questions) and id2 < len(questions):
-            if DuplicationsFinder._check_if_questions_similar(id2, id1, questions, tree):
-                id_to_remove = id2 if len(questions[id2]) < len(questions[id1]) else id1
-                id_to_leave = id2 if id_to_remove == id1 else id1
+            id_to_remove = DuplicationsFinder._get_question_to_remove(id2, id1, questions, ai_core, topic)
+
+            if id_to_remove is not None:
+                id_to_leave, id_to_remove = (id2, id1) if id_to_remove == 1 else (id1, id2)
                 to_remove = questions[id_to_remove - 1]
                 to_leave = questions[id_to_leave - 1]
 

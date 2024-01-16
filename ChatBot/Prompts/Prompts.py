@@ -67,6 +67,8 @@ He probably has a related bug or he investigates the project asking questions. Y
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY THE NUMBER"
 
+ONLY_YES_NO_PROMPT = "Write only 'Yes' or 'No'"
+
 # Split topic: I am creating a FAQ for a software project (Augmented Reality Engine) and the topic "Native Code Integration" in that FAQ has too many questions. I would like to split it into 3-5 parts. Which parts would you suggest if I have the following questions in that topic:
 
 #############################################################################

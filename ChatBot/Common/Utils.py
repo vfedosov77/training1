@@ -110,7 +110,7 @@ def get_file_id(path):
     return path
 
 
-def contains_all(self, collection1: set, collection2: set or list):
+def contains_all(collection1: set, collection2: set or list):
     assert isinstance(collection2, set) or isinstance(collection2, list)
 
     for item in collection2:

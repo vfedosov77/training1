@@ -12,20 +12,31 @@ from typing import Dict, Set
 
 class TreeBuilder:
     def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, callback):
-        questions2files = self._fill_questions2files(storage)
+        questions2files = storage.get_json(QUESTIONS2FILES_ID)
+        questions_simplified = True
+
+        if not questions2files:
+            questions2files = self._fill_questions2files(storage)
+            questions_simplified = False
+
         main_topics = self._fill_topics()
         main_topics = self._make_tree(main_topics, questions2files, storage, ai_core)
 
         tree = QuestionsTree(questions2files, main_topics, ai_core, storage, callback)
 
-        if DuplicationsFinder()(tree, ai_core, callback):
-            pass#tree.commit_changes(storage, tree.get_main_topics())
+        if not questions_simplified and DuplicationsFinder()(tree, ai_core, callback):
+            self._commit_changes(storage, main_topics, questions2files)
 
         return tree
 
     @staticmethod
-    def _commit_changes(storage, main_topics):
+    def _commit_changes(storage, main_topics, questions2files=None):
         storage.insert_json(MAIN_TOPICS_ID, main_topics)
+
+        if questions2files:
+            # Set -> List
+            to_store = {key: [i for i in value] for key, value in questions2files.items()}
+            storage.insert_json(QUESTIONS2FILES_ID, to_store)
 
     @staticmethod
     def _fill_questions2files(storage):
