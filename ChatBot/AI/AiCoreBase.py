@@ -59,8 +59,11 @@ class AiCoreBase(metaclass=ABCMeta):
             idx = get_idx_from_response(response)
             return idx is not None
 
-        return self.get_1_or_2_steps_conversation_result(prompt,
-                                                         ONLY_NUMBER_PROMPT,
-                                                         check_number,
-                                                         max_answer_tokens,
-                                                         context)
+        return get_idx_from_response(self.get_1_or_2_steps_conversation_result(prompt,
+                                     ONLY_NUMBER_PROMPT,
+                                     check_number,
+                                     max_answer_tokens,
+                                     context))
+
+    def get_pair_of_ids_result(self, prompt, max_answer_tokens, context):
+        return get_pair_of_ids_from_response(self.get_short_conversation_result(prompt, max_answer_tokens, context))

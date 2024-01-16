@@ -2,6 +2,7 @@ from ChatBot.Prompts.Prompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
+from ChatBot.QuestionsTree.TreeBuilder import TreeBuilder
 from ChatBot.KeywordsIndex import KeywordsIndex
 from ChatBot.Common.Utils import *
 from ChatBot.Common.Constants import *
@@ -78,14 +79,10 @@ class KnowlegeBase:
         return self.tree.get_answer(question)
 
     def get_tree(self):
-        items = self.storage.get_all()
-        questions = dict()
+        if self.tree is None:
+            builder = TreeBuilder()
+            self.tree = builder(self.ai_core, self.storage, self.callback)
 
-        for item in items:
-            if QUESTIONS_FIELD in item:
-                questions.update({question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
-
-        self.tree = QuestionsTree(questions, self.ai_core, self.storage, self.callback)
         return self.tree
 
     def discover_project(self, project_path: str):

@@ -4,6 +4,7 @@ import os, sys
 MAX_SYMBOLS_TO_READ = 25000
 LOCAL_PATH = os.environ.get("LOCAL_PATH")
 
+
 def remove_line_number(line, sep):
     idx = line.find(sep)
 
@@ -63,6 +64,25 @@ def get_idx_from_response(response: str):
     idx = int(result)
     return idx
 
+
+# Looking for a "(id1, id1)" item in the response
+def get_pair_of_ids_from_response(response: str):
+    parts = response.split("(")
+
+    if len(parts) < 2:
+        return None, None
+
+    parts = parts[1].split(")")
+
+    if len(parts) < 2:
+        return None, None
+
+    parts = parts[0].split(",")
+
+    if len(parts) != 2 or not str.isnumeric(parts[0]) or not str.isnumeric(parts[1]):
+        return None, None
+
+    return int(parts[0]), int(parts[1])
 
 def get_local_path(path):
     return path.replace("/content/drive/MyDrive/Sources/", LOCAL_PATH).\

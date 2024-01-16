@@ -2,6 +2,7 @@ from ChatBot.Prompts.TopicsTreePrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Utils import *
+from ChatBot.AI.AiCoreBase import AiCoreBase
 
 import os
 from typing import Dict, List
@@ -36,16 +37,18 @@ class QuestionsTree:
             assert self.has_children()
             return QuestionsTree.Iterator(self.topics[self.current_item])
 
-    def __init__(self, questions2files: Dict[str, str], ai_core, storage: JSONDataStorage, callback):
+    def __init__(self,
+                 questions2files: Dict[str, str],
+                 main_topics: Dict[str, List[str]],
+                 ai_core: AiCoreBase,
+                 storage: JSONDataStorage,
+                 callback):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
         self.storage: JSONDataStorage = storage
-        self.main_topics: Dict[str, List[str]] = None
+        self.main_topics: Dict[str, List[str]] = main_topics
         self.callback = callback
-        self._fill_topics()
-        self._make_tree()
-        self._fill_questions2files()
         self.checked_files = set()
 
     def get_answer(self, question: str, chat_history = None):
@@ -92,7 +95,7 @@ class QuestionsTree:
             questions = [q for q in questions if self.questions2files[q] not in self.checked_files]
 
             while len(questions) > 0:
-                cur_questions = questions[:10]
+                cur_questions = questions[:MAX_ITEMS_IN_REQUEST]
                 question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions), len(cur_questions))
 
                 if question_id is not None and question_id < len(cur_questions):
@@ -117,18 +120,6 @@ class QuestionsTree:
     def _on_step(self, short_name, description, kind=NORMAL_TEXT):
         if self.callback:
             self.callback(short_name, description, kind)
-
-    def _get_topic_for_question(self, question: str, topics_dict: dict) -> str:
-        topics = list(topics_dict.keys())
-
-        prompt = add_project_description(TOPIC_FOR_QUESTION_PROMPT).\
-            replace("[TOPICS_WITH_NUMBERS]", get_items_with_numbers(topics)).\
-            replace("[QUESTION]", question.strip())
-
-        result = self.ai_core.get_generated_text(prompt, 2)
-
-        topic_id = get_idx_from_response(result)
-        return topics[topic_id - 1] if topic_id < len(topics) else None
 
     def check_file(self, path, question):
         found_answer = False
@@ -174,116 +165,6 @@ class QuestionsTree:
         self._on_step(f"No relevant info was found.", result)
         return None, None
 
-    def _fill_questions2files(self):
-        for item in self.storage.get_all():
-            if PATH_FIELD in item and QUESTIONS_FIELD in item:
-                path = item[PATH_FIELD]
-                self.questions2files.update({question: path for question in item[QUESTIONS_FIELD]})
-
-    def _fill_topics(self):
-        # TODO: must be created automatically
-        topics = ["Android UI",
-            "Native code integration",
-            "Video processing",
-            "Mathematics",
-            "Image processing: Algorithms",
-            "Image processing: Data structures",
-            "Security",
-            "Rendering",
-            "Sensors",
-            "Filesystem",
-            "Other"]
-
-        main_topics = {t: [] for t in topics}
-
-        main_topics["Native code integration"] = {"Integrating C++ code with Java using the Java Native Interface (JNI)": [],
-                                                       "Compiler-specific questions": [],
-                                                       "Platform-specific questions": [],
-                                                       "Other": []}
-
-        main_topics["Image processing: Algorithms"] = {
-            "Key point detection and processing": [],
-            "Gradient calculation and processing": [],
-            "Real world objects and planes detection": [],
-            "Plotting and visualization": [],
-            "Other": []}
-
-        main_topics["Image processing: Data structures"] = {
-            "Data structures to work with the whole picture": [],
-            "Geometry primitives": [],
-            "Picture features - keypoints, descriptors etc.": [],
-            "Other": []}
-
-        self.main_topics = main_topics
-
-    def _merge_trees(self, new_structure: dict, old_topics: dict):
-        it1 = iter(new_structure.items())
-        it2 = iter(old_topics.items())
-        result = dict()
-        has_changes = False
-
-        try:
-            while True:
-                t1, items1 = next(it1)
-                t2, items2 = next(it2)
-
-                if t1 != t2:
-                    assert False, "Not implemented"
-
-                if isinstance(items1, dict) and isinstance(items2, list):
-                    self._distribute_questions(items2, items1)
-                    result[t1] = items1
-                    has_changes = True
-                else:
-                    result[t1] = items2
-        except StopIteration:
-            pass
-
-        self.main_topics = result
-
-        if has_changes:
-            self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
-
-
-    def _make_tree(self):
-        main_topics = self.storage.get_json(MAIN_TOPICS_ID)
-        #main_topics = None
-        if main_topics:
-            print("Loaded topics:")
-            self._print_topics(main_topics)
-            self._merge_trees(self.main_topics, main_topics)
-            return
-
-        count = len(self.questions2files)
-        print(f"Questions count: {count}")
-
-        all_questions = set(self.questions2files.keys())
-        self._distribute_questions(all_questions, self.main_topics)
-
-        self.storage.insert_json(MAIN_TOPICS_ID, self.main_topics)
-
-        #topics2questions = self._group_questions(self.questions2files)
-        #self._fill_main_topics(topics2questions)
-
-    def _distribute_questions(self, questions, topics):
-        for question in questions:
-            detected = self._get_topic_for_question(question, topics)
-
-            if detected:
-                topic = topics[detected]
-                if isinstance(topic, dict):
-                    self._distribute_questions([question], topic)
-                else:
-                    topic.append(question)
-            else:
-                topics["Other"].append(question)
-
-        print("Questions are distributed:")
-        self._print_topics(topics)
-
-    def _print_topics(self, topics):
-        for topic, questions in topics.items():
-            print(topic + ". " + str(len(questions)) + ": " + str(questions))
 
     # def _find_questions_related_to_topic(self, questions: List[str], topic):
     #     questions_with_numbers = get_items_with_numbers(questions)

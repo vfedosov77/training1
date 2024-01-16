@@ -1,6 +1,8 @@
 from ChatBot.AI.AiCoreBase import AiCoreBase
 from ChatBot.QuestionsTree import QuestionsTree
 from ChatBot.Prompts.QuestionsProccesingPrompts import *
+from ChatBot.Prompts.PromptUtils import *
+from ChatBot.Common.Utils import *
 
 from typing import List
 
@@ -39,5 +41,10 @@ class DuplicationsFinder:
             self._find_duplications(questions, parents, tree)
 
     def _find_duplications(self, questions, parents, tree):
-        context = FIND_DUPLICATIONS_CONTEXT.replace("[PROJECT_DESCRIPTION]")
+        topic = parents[-1]
+        context = add_project_description(FIND_DUPLICATIONS_CONTEXT).replace("[TOPIC_NAME]", topic)
+        prompt = FIND_DUPLICATIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", get_items_with_numbers(questions))
+        id1, id2 = self.ai_core.get_pair_of_ids_result(prompt, 20, context)
+
+        if id1 is not None
 
