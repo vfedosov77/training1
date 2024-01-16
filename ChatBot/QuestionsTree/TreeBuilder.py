@@ -5,6 +5,7 @@ from ChatBot.Common.Utils import *
 from ChatBot.Prompts.TopicsTreePrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.AI.AiCoreBase import AiCoreBase
+from ChatBot.QuestionsTree.DuplicationsFinder import DuplicationsFinder
 
 from typing import Dict
 
@@ -20,10 +21,11 @@ class TreeBuilder:
                     {question: item[PATH_FIELD] for question in item[QUESTIONS_FIELD] if len(question) > 1})
 
         main_topics = self._fill_topics()
-        main_topics = self._make_tree(main_topics, questions2files, storage)
+        main_topics = self._make_tree(main_topics, questions2files, storage, ai_core)
         self._fill_questions2files(storage, questions2files)
 
         tree = QuestionsTree(questions2files, main_topics, ai_core, storage, callback)
+        DuplicationsFinder()(tree, ai_core, callback)
         return tree
 
     @staticmethod
@@ -107,7 +109,7 @@ class TreeBuilder:
         if old_main_topics:
             print("Loaded topics:")
             TreeBuilder._print_topics(old_main_topics)
-            return TreeBuilder._merge_trees(main_topics, old_main_topics, storage)
+            return TreeBuilder._merge_trees(main_topics, old_main_topics, ai_core, storage)
 
         count = len(questions2files)
         print(f"Questions count: {count}")

@@ -73,16 +73,12 @@ def get_pair_of_ids_from_response(response: str):
         return None, None
 
     parts = parts[1].split(")")
-
-    if len(parts) < 2:
-        return None, None
-
     parts = parts[0].split(",")
 
-    if len(parts) != 2 or not str.isnumeric(parts[0]) or not str.isnumeric(parts[1]):
+    if len(parts) != 2 or not str.isnumeric(parts[0]) or not str.isnumeric(parts[1].strip()):
         return None, None
 
-    return int(parts[0]), int(parts[1])
+    return int(parts[0]), int(parts[1].strip())
 
 def get_local_path(path):
     return path.replace("/content/drive/MyDrive/Sources/", LOCAL_PATH).\

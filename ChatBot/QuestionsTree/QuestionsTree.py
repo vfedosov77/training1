@@ -20,22 +20,23 @@ QUESTIONS_FOR_MAIN_TOPICS = QUESTIONS_PER_REQUEST * 2
 
 class QuestionsTree:
     class Iterator:
-        def __init__(self, topics: [Dict | List]):
+        def __init__(self, topics: Dict or List):
             self.topics = topics
-            self.is_list = isinstance(topics, list)
-            self.iter = iter(self.topics) if self.is_list else iter(self.topics.keys())
+            self.is_dict = isinstance(topics, dict)
+            self.iter = iter(self.topics.keys()) if self.is_dict else iter(self.topics)
             self.current_item = None
 
         def __next__(self):
             self.current_item = next(self.iter)
             return self.current_item
 
-        def has_children(self):
-            return not self.is_list
+        def has_subtopics(self):
+            return self.is_dict
 
         def to_children(self):
-            assert self.has_children()
-            return QuestionsTree.Iterator(self.topics[self.current_item])
+            children = self.topics[self.current_item]
+            assert isinstance(children, list) or isinstance(children, dict)
+            return QuestionsTree.Iterator(children)
 
     def __init__(self,
                  questions2files: Dict[str, str],
@@ -61,10 +62,26 @@ class QuestionsTree:
     def __iter__(self):
         return QuestionsTree.Iterator(self.main_topics)
 
-    def _get_corresponding_item(self, question, items, items_count):
+    def remove_node(self, path, check_if_leaf=True):
+        cur_item = self.main_topics
+
+        for item in path[:-1]:
+            cur_item = cur_item[item]
+
+        assert cur_item
+
+        if isinstance(cur_item, dict):
+            assert not check_if_leaf
+            del cur_item[path[-1]]
+        else:
+            cur_item.remove(path[-1])
+
+    def get_corresponding_item(self, question, items):
+        with_numbers = get_items_with_numbers(items)
+        items_count = len(items)
         context = add_project_description(WHICH_TOPIC_IS_CLOSEST_CONTEXT)
         prompt = WHICH_TOPIC_IS_CLOSEST_PROMT.replace("[QUESTION]", question). \
-            replace("[TOPICS_WITH_NUMBERS]", items)
+            replace("[TOPICS_WITH_NUMBERS]", with_numbers)
 
         self._on_step(f"Find corresponding topic from {items_count} items.", prompt)
         result = self.ai_core.get_short_conversation_result(prompt, 20, context)
@@ -74,11 +91,10 @@ class QuestionsTree:
 
     def _get_answer(self, question: str, topics_dict: dict, ignore_topic = None):
         topics = [t for t in topics_dict.keys() if t != ignore_topic]
-        with_numbers = get_items_with_numbers(topics)
+        topic_id = self.get_corresponding_item(question, topics)
 
-        topic_id = self._get_corresponding_item(question, with_numbers, len(topics))
         if topic_id is None:
-            #topic_id = self._get_corresponding_item(question, with_numbers, len(topics))
+            #topic_id = self._get_corresponding_item(question, topics)
             #if topic_id is None:
             self._on_step("Error during the request processing", None)
             print("Some error during the request processing")
@@ -96,7 +112,7 @@ class QuestionsTree:
 
             while len(questions) > 0:
                 cur_questions = questions[:MAX_ITEMS_IN_REQUEST]
-                question_id = self._get_corresponding_item(question, get_items_with_numbers(cur_questions), len(cur_questions))
+                question_id = self.get_corresponding_item(question, cur_questions)
 
                 if question_id is not None and question_id < len(cur_questions):
                     cur_question = cur_questions[question_id - 1]
