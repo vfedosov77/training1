@@ -1,15 +1,10 @@
-import random
-
-from ChatBot.Promts import *
+from ChatBot.Prompts.TopicsTreePrompts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
-from ChatBot.Utils import *
+from ChatBot.Common.Utils import *
 
-import torch
 import os
-import pathlib as pl
-import json
-from typing import Dict, List, Set
-from ChatBot.Constants import *
+from typing import Dict, List
+from ChatBot.Common.Constants import *
 
 
 QUESTIONS_PER_REQUEST = 70

@@ -1,13 +1,11 @@
 import openai
-import os, sys
 
-from ChatBot.Utils import *
-from ChatBot.Promts import *
+from ChatBot.AI.AiCoreBase import AiCoreBase
 
 MAX_CONVERSATION_STEPS=5
 
 
-class Gpt35AICore:
+class Gpt35AICore(AiCoreBase):
     def __init__(self):
         # Key from OPENAI_API_KEY env
         self.client = openai.OpenAI()
@@ -26,7 +24,7 @@ class Gpt35AICore:
         print("Response: " + str(response))
         return response
 
-    def get_short_question_result(self, prompt, max_answer_tokens, context=""):
+    def get_short_question_result(self, prompt, max_answer_tokens, context="") -> str:
         print("Context: " + context + "\nPrompt: " + prompt)
 
         prompt = context +  "\n\nQuestion: " + prompt
@@ -42,7 +40,7 @@ class Gpt35AICore:
         print("Response: " + str(response))
         return response
 
-    def get_conversation_result(self, callback, max_answer_tokens, context=""):
+    def get_conversation_result(self, callback, max_answer_tokens, context="") -> str:
         print("Context: " + context)
         prompt = callback(0, None)
         cur_len = len(context)
@@ -84,54 +82,4 @@ class Gpt35AICore:
 
         raise BrokenPipeError()
 
-    def get_short_conversation_result(self, prompt, max_answer_tokens, context=""):
-        def callback(id, answer):
-            return prompt if id == 0 else None
 
-        return self.get_conversation_result(callback, max_answer_tokens, context)
-
-    def get_1_or_2_steps_conversation_result(self,
-                                             prompt1,
-                                             prompt2,
-                                             check_answer_callback,
-                                             max_answer_tokens,
-                                             context=""):
-        def callback(id, answer):
-            if id == 0:
-                return prompt1
-
-            if id > 1 or check_answer_callback(answer):
-                return None
-
-            return prompt2
-
-        return self.get_conversation_result(callback, max_answer_tokens, context)
-
-    def get_2_steps_conversation_result(self,
-                                         prompt1,
-                                         prompt2,
-                                         max_answer_tokens,
-                                         context=""):
-        answers = []
-
-        def callback(id, answer):
-            answers.append(answer)
-
-            if id == 0:
-                return prompt1
-
-            return prompt2
-
-        self.get_conversation_result(callback, max_answer_tokens, context)
-        return (answers[0], answers[1])
-
-    def get_number_result(self, prompt, max_answer_tokens, context):
-        def check_number(response):
-            idx = get_idx_from_response(response)
-            return idx is not None
-
-        return self.get_1_or_2_steps_conversation_result(prompt,
-                                                         ONLY_NUMBER_PROMPT,
-                                                         check_number,
-                                                         max_answer_tokens,
-                                                         context)

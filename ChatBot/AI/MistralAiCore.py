@@ -1,7 +1,9 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline, Conversation
+from ChatBot.AI.AiCoreBase import AiCoreBase
 
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline, Conversation
 import torch
 import os
+
 
 RESOURCES_FOLDER = "/content/drive/MyDrive/temp/Resources/"
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
@@ -15,7 +17,8 @@ ASSIST_FORMAT = TAG_PREFIX + "assistant\n"
 INPUT_TEXT_FORMAT = SYS_FORMAT + USER_FORMAT + ASSIST_FORMAT
 MAX_CONVERSATION_STEPS = 5
 
-class MistralAiCore:
+
+class MistralAiCore(AiCoreBase):
     def __init__(self):
         bnb_config = BitsAndBytesConfig(
             load_in_8bit=True
@@ -98,20 +101,3 @@ class MistralAiCore:
 
         raise BrokenPipeError()
 
-    def get_short_conversation_result(self, prompt, max_answer_tokens):
-        def callback(id, answer):
-            return prompt if id == 0 else None
-
-        return self.get_conversation_result(callback, max_answer_tokens)
-
-    def get_1_or_2_steps_conversation_result(self, prompt1, prompt2, check_answer_callback, max_answer_tokens):
-        def callback(id, answer):
-            if id == 0:
-                return prompt1
-
-            if id > 1 or check_answer_callback(answer):
-                return None
-
-            return prompt2
-
-        return self.get_conversation_result(callback, max_answer_tokens)

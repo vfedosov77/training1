@@ -1,9 +1,5 @@
-import tkinter
 import tkinter as tk
-from tkinter import ttk
-from ChatBot.Constants import *
-import re
-import functools
+from ChatBot.Common.Constants import *
 
 
 class Dialog(tk.Tk):

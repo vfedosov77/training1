@@ -1,9 +1,9 @@
-from ChatBot.Promts import *
+from ChatBot.Prompts.Prompts import *
 from ChatBot.JSONDataStorage import JSONDataStorage
-from ChatBot.QuestionsTree import QuestionsTree
+from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
 from ChatBot.KeywordsIndex import KeywordsIndex
-from ChatBot.Utils import *
-from ChatBot.Constants import *
+from ChatBot.Common.Utils import *
+from ChatBot.Common.Constants import *
 import torch
 import os
 import pathlib as pl

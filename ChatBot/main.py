@@ -1,10 +1,8 @@
-import os
-
-from Gpt35AICore import Gpt35AICore
+from ChatBot.AI.Gpt35AICore import Gpt35AICore
 from KnowlegeBase import KnowlegeBase
 from Dialog import Dialog
-from Constants import *
-from ChatBot.Utils import *
+from ChatBot.Common.Constants import *
+from ChatBot.Common.Utils import *
 from collections import defaultdict
 
 
