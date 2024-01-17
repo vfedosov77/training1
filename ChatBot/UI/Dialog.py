@@ -1,9 +1,12 @@
 import tkinter as tk
 from ChatBot.Common.Constants import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+
+from functools import partial
 
 
 class Dialog(tk.Tk):
-    def __init__(self):
+    def __init__(self, dispatcher: NotificationDispatcher):
         super().__init__()
 
         self.info_provider = None
@@ -54,7 +57,7 @@ class Dialog(tk.Tk):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        #self.add_log_entry("Response: The code contains the closely related part to the question. The method related to processing the camera focus is the `autoFocus()` method in the `RasterCapturer` class.", None)
+        dispatcher.add_events_observer(partial(Dialog.add_log_entry, self))
 
     def clean_log(self):
         self.log.delete("1.0", tk.END)
@@ -67,9 +70,6 @@ class Dialog(tk.Tk):
         self.chat.delete("1.0", tk.END)
         self.cur_chat_line = 0
         self.clean_log()
-
-    def set_provider(self, info_provider):
-        self.info_provider = info_provider
 
     def add_role_message(self, role, message):
         self.chat.insert('end', role + ": " + message + "\n")

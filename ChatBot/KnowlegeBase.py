@@ -6,6 +6,8 @@ from ChatBot.QuestionsTree.TreeBuilder import TreeBuilder
 from ChatBot.KeywordsIndex import KeywordsIndex
 from ChatBot.Common.Utils import *
 from ChatBot.Common.Constants import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+
 import torch
 import os
 import pathlib as pl
@@ -19,19 +21,17 @@ SHORT_FILES_DESCRIPTION_SIZE = 5000
 
 
 class KnowlegeBase:
-    def __init__(self, ai_core, callback=None):
+    def __init__(self, ai_core, dispatcher: NotificationDispatcher):
         self.storage: JSONDataStorage = None
-        self.files_info = dict()
-        self.dirs_info = dict()
         self.ai_core = ai_core
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
         self.tree = None
         self.keywords = None
-        self.callback = callback
-        # self.paths_to_fix = {"/content/drive/MyDrive/Sources/ParallelWorld/jni"}
+        self.dispatcher = dispatcher
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
+        assert self.tree, "Project was not opened"
         context = add_project_description(ROOT_CONTEXT).\
             replace('[CHAT_LOG]', self._format_chat_history(chat_history))
 
@@ -78,16 +78,19 @@ class KnowlegeBase:
         self._on_step("The sources investigations is required to answer.", str(result), SELECTED_TEXT)
         return self.tree.get_answer(question)
 
-    def get_tree(self):
-        if self.tree is None:
-            builder = TreeBuilder()
-            self.tree = builder(self.ai_core, self.storage, self.callback)
+    def open_project(self):
+        project_path = get_config().get_project_path()
+        self.keywords = KeywordsIndex(project_path, self.code_suffices, self.dispatcher)
+        builder = TreeBuilder()
+        self.tree = builder(self.ai_core, self.storage, self.dispatcher)
 
-        return self.tree
+    def index_project(self):
+        project_path = get_config().get_project_path()
+        project_description = get_config().get_project_description()
 
-    def discover_project(self, project_path: str):
         self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
-        self.keywords = KeywordsIndex(project_path, self.code_suffices, self.callback)
+        self.storage.insert_json(PROJECT_DESCRIPTION_ID, project_description)
+
         # self._clear_brocken()
 
         def dfs(path):
@@ -123,12 +126,13 @@ class KnowlegeBase:
         dfs(project_path)
         self._create_questions(project_path)
 
+        self._on_step("Index was successfully created.", None, SELECTED_TEXT)
+
     def _format_chat_history(self, history):
         return "".join(role + ": " + message + "\n" for role, message in history)
 
     def _on_step(self, short_name, description, kind=NORMAL_TEXT):
-        if self.callback:
-            self.callback(short_name, description, kind)
+        self.dispatcher.on_event(short_name, description, kind)
 
     def _clear_brocken(self):
         print("Broken will be cleaned")

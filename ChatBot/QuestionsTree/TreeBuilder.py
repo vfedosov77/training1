@@ -11,7 +11,7 @@ from typing import Dict, Set
 
 
 class TreeBuilder:
-    def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, callback):
+    def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher):
         questions2files = storage.get_json(QUESTIONS2FILES_ID)
         questions_simplified = True
 
@@ -22,9 +22,9 @@ class TreeBuilder:
         main_topics = self._fill_topics()
         main_topics = self._make_tree(main_topics, questions2files, storage, ai_core)
 
-        tree = QuestionsTree(questions2files, main_topics, ai_core, storage, callback)
+        tree = QuestionsTree(questions2files, main_topics, ai_core, storage, dispatcher)
 
-        if not questions_simplified and DuplicationsFinder()(tree, ai_core, callback):
+        if not questions_simplified and DuplicationsFinder()(tree, ai_core, dispatcher):
             self._commit_changes(storage, main_topics, questions2files)
 
         return tree

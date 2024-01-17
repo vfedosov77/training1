@@ -2,6 +2,7 @@ from ChatBot.Prompts.TopicsTreePrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Utils import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.AI.AiCoreBase import AiCoreBase
 
 import os
@@ -43,13 +44,13 @@ class QuestionsTree:
                  main_topics: Dict[str, List[str]],
                  ai_core: AiCoreBase,
                  storage: JSONDataStorage,
-                 callback):
+                 dispatcher: NotificationDispatcher):
         # TODO: one to many implementation
         self.questions2files = questions2files
         self.ai_core = ai_core
         self.storage: JSONDataStorage = storage
         self.main_topics: Dict[str, List[str]] = main_topics
-        self.callback = callback
+        self.dispatcher = dispatcher
         self.checked_files = set()
 
     def get_answer(self, question: str, chat_history = None):
@@ -148,8 +149,7 @@ class QuestionsTree:
         return answer
 
     def _on_step(self, short_name, description, kind=NORMAL_TEXT):
-        if self.callback:
-            self.callback(short_name, description, kind)
+        self.dispatcher(short_name, description, kind)
 
     def check_file(self, path, question):
         found_answer = False

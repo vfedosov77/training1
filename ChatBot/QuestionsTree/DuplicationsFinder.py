@@ -3,13 +3,14 @@ from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree, NORMAL_TEXT, SELE
 from ChatBot.Prompts.QuestionsProccesingPrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.Common.Utils import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 
 from typing import List
 import random
 
 
 class DuplicationsFinder:
-    def __call__(self, tree: QuestionsTree, ai_core: AiCoreBase, callback):
+    def __call__(self, tree: QuestionsTree, ai_core: AiCoreBase, dispatcher: NotificationDispatcher):
         topics_to_simplify = []
 
         def search(it, parents: List):
@@ -40,7 +41,7 @@ class DuplicationsFinder:
             old_topics = get_items_with_numbers(questions)
 
             if len(questions) <= 8:
-                while len(questions) > 2 and self._find_duplication(questions, parents, tree, ai_core, callback):
+                while len(questions) > 2 and self._find_duplication(questions, parents, tree, ai_core, dispatcher):
                     pass
             else:
                 samples_count = (len(questions) // MAX_ITEMS_IN_REQUEST + 1) * 2
@@ -110,7 +111,10 @@ class DuplicationsFinder:
         return None
 
     @staticmethod
-    def _find_duplication(questions, parents, tree: QuestionsTree, ai_core: AiCoreBase, callback):
+    def _find_duplication(questions,
+                          parents, tree: QuestionsTree,
+                          ai_core: AiCoreBase,
+                          dispatcher: NotificationDispatcher):
         topic = parents[-1]
         context = add_project_description(FIND_DUPLICATIONS_CONTEXT).replace("[TOPIC_NAME]", topic)
         prompt = FIND_DUPLICATIONS_PROMPT.replace("[QUESTIONS_WITH_NUMBERS]", get_items_with_numbers(questions))
@@ -127,15 +131,15 @@ class DuplicationsFinder:
                 tree.merge_leaf_nodes(parents, to_leave, to_remove)
                 questions.remove(to_remove)
 
-                DuplicationsFinder._add_log_info(callback, to_leave, to_remove)
+                DuplicationsFinder._add_log_info(dispatcher, to_leave, to_remove)
                 return True
 
         return False
 
     @staticmethod
-    def _add_log_info(callback, to_leave, to_remove):
+    def _add_log_info(dispatcher: NotificationDispatcher, to_leave, to_remove):
         message = f"Questions '{to_leave}' and '{to_remove}' are similar"
         print(message)
-        callback(message, None, NORMAL_TEXT)
+        dispatcher.on_event(message, None, NORMAL_TEXT)
 
 

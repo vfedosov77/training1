@@ -1,10 +1,12 @@
 import os, sys
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+
 
 class KeywordsIndex:
-    def __init__(self, path, code_files_suffices, callback):
+    def __init__(self, path, code_files_suffices, dispatcher: NotificationDispatcher):
         self.path = path
         self.code_files_suffices: set = code_files_suffices
-        self.callback = callback
+        self.dispatcher = dispatcher
 
     def find_keyword(self, keyword: str):
         # TODO: temporary approach - the index is required here
