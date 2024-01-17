@@ -81,8 +81,15 @@ class KnowlegeBase:
     def open_project(self):
         project_path = get_config().get_project_path()
         self.keywords = KeywordsIndex(project_path, self.code_suffices, self.dispatcher)
-        builder = TreeBuilder()
-        self.tree = builder(self.ai_core, self.storage, self.dispatcher)
+
+        questions2files = self.storage.get_json(QUESTIONS2FILES_ID)
+        main_topics = self.storage.get_json(MAIN_TOPICS_ID)
+
+        if questions2files is None or main_topics is None:
+            print("Index is not finished or broken. Please execute index.py.")
+            exit(-1)
+
+        self.tree = QuestionsTree(questions2files, main_topics, self.ai_core, self.storage, self.dispatcher)
 
     def index_project(self):
         project_path = get_config().get_project_path()
@@ -121,6 +128,9 @@ class KnowlegeBase:
 
         dfs(project_path)
         self._create_questions(project_path)
+
+        builder = TreeBuilder()
+        self.tree = builder(self.ai_core, self.storage, self.dispatcher)
 
         self._on_step("Index was successfully created.", None, SELECTED_TEXT)
 
@@ -201,7 +211,10 @@ class KnowlegeBase:
             replace("[DIRECTORY_NAME]", dir_name)
 
         response = self.ai_core.get_short_conversation_result(prompt, 1500)
-        self.storage.insert_json(dir_id, self._create_json_for_path(get_relative_path(path), DIRECTORY_KIND, response))
+
+        path = get_relative_path(path)
+        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
+        self._on_step(f"A summary for {path} is created", response)
         return dir_id
 
     def _create_children_descriptions(self, children, files_descriptions):
@@ -256,7 +269,7 @@ class KnowlegeBase:
         text = get_file_content(path)
         response = self.ai_core.get_short_conversation_result(FILE_SUMMARY_PROMPT + text, 1500)
         self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
-
+        self._on_step(f"A summary for {path} is created", response)
         return file_id
 
     def _get_children(self, path):
@@ -348,6 +361,7 @@ class KnowlegeBase:
             print("Parsed: " + str(questions))
             file_json[QUESTIONS_FIELD] = questions
             self.storage.insert_json(file_id, file_json)
+            self._on_step(f"Questions for {rel_path} are generated", response)
         except RuntimeError as e:
             if not short_request:
                 print("GPU memory issue - try a short version of the request.")

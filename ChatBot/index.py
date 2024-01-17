@@ -48,4 +48,6 @@ ai_core = Gpt35AICore()
 base = KnowlegeBase(ai_core, dispatcher, storage)
 base.index_project()
 
+base
+
 app.mainloop()

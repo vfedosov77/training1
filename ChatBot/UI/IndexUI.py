@@ -35,7 +35,7 @@ class IndexUI(tk.Tk):
         self.log.bind('<Double-1>', self.show_details)
         self.item_to_highlight = None
 
-        self.columnconfigure(0, weight=1)
+        self.columnconfigure(2, weight=1)
         self.rowconfigure(1, weight=1)
 
         dispatcher.add_events_observer(partial(IndexUI.add_log_entry, self))

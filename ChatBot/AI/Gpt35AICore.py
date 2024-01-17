@@ -55,7 +55,7 @@ class Gpt35AICore(AiCoreBase):
 
             messages.append({"role": "user", "content": prompt})
 
-            if cur_len > 10000:
+            if cur_len > 8000:
                 response = self.client.chat.completions.create(
                     model="gpt-3.5-turbo-1106",
                     messages=messages,

@@ -50,7 +50,7 @@ class DuplicationsFinder:
                     sample = random.sample(questions, min(len(questions), MAX_ITEMS_IN_REQUEST))
                     was = set(sample)
 
-                    while len(sample) > 2 and self._find_duplication(sample, parents, tree, ai_core, callback):
+                    while len(sample) > 2 and self._find_duplication(sample, parents, tree, ai_core, dispatcher):
                         pass
 
                     for item in was - set(sample):
@@ -58,9 +58,9 @@ class DuplicationsFinder:
 
             if len(questions) != start_count:
                 has_changes = True
-                callback(f"The amount of items reduced from {start_count} to {len(questions)}",
-                         old_topics + "\n\n\n" + get_items_with_numbers(questions),
-                         SELECTED_TEXT)
+                dispatcher.on_event(f"The amount of items reduced from {start_count} to {len(questions)}",
+                                    old_topics + "\n\n\n" + get_items_with_numbers(questions),
+                                    SELECTED_TEXT)
 
         return has_changes
 

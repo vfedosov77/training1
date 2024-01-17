@@ -25,7 +25,7 @@ if not os.path.exists(path) or not os.path.isdir(path):
 
 db_path = os.path.join(path, DB_FILE_NAME)
 
-if not os.path.exists(db_path) or os.path.isdir(path):
+if not os.path.exists(db_path):
     print("Cannot find project index file: " + db_path + ". Please execute index.py script to create the index.")
     exit(-1)
 
