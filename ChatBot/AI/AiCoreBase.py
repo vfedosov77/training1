@@ -49,7 +49,10 @@ class AiCoreBase(metaclass=ABCMeta):
             if id == 0:
                 return prompt1
 
-            return prompt2
+            if id == 1:
+                return prompt2
+
+            return None
 
         self.get_conversation_result(callback, max_answer_tokens, context)
         return (answers[0], answers[1])

@@ -1,3 +1,5 @@
+SHORT_DESCRIPTION_PROMPT = "Could you make this project [KIND] overview shorter -  a few sentences would be enough: "
+
 FILE_SUMMARY_CONTEXT = \
 """"You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
 Your task is to write a short description for manager of each file in that project. 
@@ -37,17 +39,28 @@ I was forced to analyze the code of that file because it is important for the un
 FILES_QUESTIONS_CONTEXT = """You are creating a big FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]. 
 FAQ will be used by software developers and managers.
 In that FAQ only essential topics of the project functionality must be included.
+Take into account that a FAQ's user probably don't know about files/classes/functions names inside of that project. Therefore create topics for a user who is not aware of those names.
 Now you are working with the folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
 
 FILES_QUESTIONS_PROMPT = \
-"""Which topics would you add into FAQ looking at the following sources of the file '[FILE_NAME]':
+"""###Instruction###
+Which topics would you add into FAQ looking at the following sources of the file '[FILE_NAME]':
 
+
+###Sources###
 [SOURCES]
 
 
+###Instruction###
+Remember: In that FAQ only essential topics of the project functionality must be included.
+Remember: a FAQ's user probably don't know about files/classes/functions names inside of that project. Therefore create topics for a user who is not aware of those names.
+He probably has a related bug or he investigates the project asking questions. 
+You should provide for each topic only one short sentence. 
+Topics must have numbers."""
 
-Take into account that a FAQ's user probably don't know about that file and the classes/functions inside of it.
-He probably has a related bug or he investigates the project asking questions. You should provide for each topic only one short sentence. Also add the number at the beginning."""
+NO_NAMES_PROMPT = """Could you rewrite the following topics in such a way that they contain no class/files/directories and methods names and they must be not overlapped:
+[TOPICS_WITH_NUMBERS]
+"""
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY THE NUMBER"
 

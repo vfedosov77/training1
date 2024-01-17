@@ -214,7 +214,8 @@ class KnowlegeBase:
         response = self.ai_core.get_short_conversation_result(DIRECTORY_SUMMARY_PROMPT, 300, context)
 
         path = get_relative_path(path)
-        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
+        json = self._create_json_for_path(path, DIRECTORY_KIND, response)
+        self._make_short_description(response, False, dir_id, json)
         self._on_step(f"A summary for {path} is created", response)
         return dir_id
 
@@ -226,7 +227,7 @@ class KnowlegeBase:
                 raise RuntimeError("Not found ID which must be presented!")
 
             files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(obj_json[PATH_FIELD]) + "': " +
-                                      obj_json[DESCRIPTION_FIELD].replace("\n", "") + "\n\n")
+                                      obj_json[SHORT_DESCRIPTION_FIELD].replace("\n", "") + "\n\n")
         descriptions = "".join(files_descriptions)
         return descriptions
 
@@ -244,6 +245,12 @@ class KnowlegeBase:
                                       desc + "...\n\n")
         descriptions = "".join(files_descriptions)
         return descriptions
+
+    def _make_short_description(self, description, is_file, id, item_json):
+        prompt = SHORT_DESCRIPTION_PROMPT.replace("[KIND]", "file" if is_file else "folder")
+        short_desc = self.ai_core.get_short_conversation_result(prompt + description, 150)
+        item_json[SHORT_DESCRIPTION_FIELD] = short_desc
+        self.storage.insert_json(id, item_json)
 
     def _process_file(self, path):
         suffix = pl.Path(path).suffix.lower()[1:]
@@ -274,7 +281,9 @@ class KnowlegeBase:
 
         prompt = FILE_SUMMARY_PROMPT.replace("[SOURCES]", text)
         response = self.ai_core.get_short_conversation_result(prompt, 200, context)
-        self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
+        json = self._create_json_for_path(path, FILE_KIND, response)
+
+        self._make_short_description(response, True, file_id, json)
         self._on_step(f"A summary for {path} is created", response)
         return file_id
 
@@ -327,18 +336,19 @@ class KnowlegeBase:
         tokens_count = self._get_tokens_count(file_content)
 
         if self.ai_core.is_generation_preferred():
-            prompt = "1. " + add_project_description(FILES_QUESTIONS_GENERATOR_PROMPT).replace("[FILE_NAME]", file_name). \
+            prompt = add_project_description(FILES_QUESTIONS_GENERATOR_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
-            response = self.ai_core.get_generated_text(prompt, tokens_count)
+            response = "1. " + self.ai_core.get_generated_text(prompt, tokens_count)
         else:
             context = add_project_description(FILES_QUESTIONS_CONTEXT).\
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc)
 
-            prompt = "1. " + add_project_description(FILES_QUESTIONS_PROMPT).replace("[FILE_NAME]", file_name). \
+            prompt = add_project_description(FILES_QUESTIONS_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
             response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
+            response = self.ai_core.get_short_conversation_result(NO_NAMES_PROMPT.replace("[TOPICS_WITH_NUMBERS]", response) , tokens_count, context)
 
         return response
 
@@ -351,9 +361,9 @@ class KnowlegeBase:
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
+        #if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
             #print("Found questions for the file " + path)
-            return
+        #    return
 
         folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
 
