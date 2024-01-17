@@ -1,3 +1,5 @@
+from ChatBot.Common.Configuration import get_config
+
 from typing import List
 import os, sys
 
@@ -80,13 +82,27 @@ def get_pair_of_ids_from_response(response: str):
 
     return int(parts[0]), int(parts[1].strip())
 
-def get_local_path(path):
-    return path.replace("/content/drive/MyDrive/Sources/", LOCAL_PATH).\
-        replace("/home/q548040/Downloads/ParallelWorld/", LOCAL_PATH)
+
+def check_if_relative_path(path):
+    assert path[0] != "/" and (len(path) < 2 or path[1] != ":"), "Path is not project relative path: " + path
 
 
-def get_file_content(path):
-    path = get_local_path(path)
+def get_relative_path(full_path):
+    root_path = get_config().get_project_path()
+    assert os.path.commonpath([root_path, full_path]) == root_path, \
+        "The path must be related to the project: " + full_path
+    return os.path.relpath(full_path, root_path)
+
+
+def get_full_path(relative_path):
+    check_if_relative_path(relative_path)
+    root_path = get_config().get_project_path()
+    return os.path.join(root_path, relative_path)
+
+
+def get_file_content(relative_path):
+    check_if_relative_path(relative_path)
+    path = get_full_path(relative_path)
 
     try:
         with open(path) as f:
@@ -104,10 +120,16 @@ def get_file_content(path):
 
     return text
 
-def get_file_id(path):
-    path = path.replace("/home/q548040/Downloads/ParallelWorld/", "/content/drive/MyDrive/Sources/").\
-        replace(LOCAL_PATH, "/content/drive/MyDrive/Sources/").replace("\\", "/")
+
+def get_file_id(relative_path):
+    check_if_relative_path(relative_path)
+    path = relative_path.replace("\\", "/")
     return path
+
+
+def get_file_id_by_full_path(path):
+    assert path[0] == "/" or path[1] == ":", "It is not a full path: " + path
+    return get_file_id(get_relative_path(path))
 
 
 def contains_all(collection1: set, collection2: set or list):

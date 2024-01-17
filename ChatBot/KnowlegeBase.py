@@ -113,8 +113,8 @@ class KnowlegeBase:
                     torch.cuda.empty_cache()
                     print(f"Cannot process {child_path} because of the lack of the GPU memory")
 
-                    self.storage.insert_json(get_file_id(child_path),
-                                             self._create_json_for_path(child_path, BROKEN_KIND, ""))
+                    self.storage.insert_json(get_file_id_by_full_path(child_path),
+                                             self._create_json_for_path(get_relative_path(child_path), BROKEN_KIND, ""))
             try:
                 return self._process_dir(path, children, False)
             except RuntimeError as e:
@@ -177,7 +177,7 @@ class KnowlegeBase:
         return {PATH_FIELD: path, KIND_FIELD: kind, DESCRIPTION_FIELD: description}
 
     def _process_dir(self, path, children, make_short_request):
-        dir_id = get_file_id(path)
+        dir_id = get_file_id_by_full_path(path)
 
         if not children:
             raise ValueError()
@@ -205,17 +205,17 @@ class KnowlegeBase:
             replace("[DIRECTORY_NAME]", dir_name)
 
         response = self.ai_core.get_short_conversation_result(prompt, 1500)
-        self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
+        self.storage.insert_json(dir_id, self._create_json_for_path(get_relative_path(path), DIRECTORY_KIND, response))
         return dir_id
 
     def _create_children_descriptions(self, children, files_descriptions):
-        for child in children:
-            obj_json = self.storage.get_json(get_file_id(child))
+        for child_id in children:
+            obj_json = self.storage.get_json(child_id)
 
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
 
-            files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(child) + "': " +
+            files_descriptions.append(obj_json[KIND_FIELD] + " '" + os.path.basename(obj_json[PATH_FIELD]) + "': " +
                                       obj_json[DESCRIPTION_FIELD].replace("\n", "") + "\n\n")
         descriptions = "".join(files_descriptions)
         return descriptions
@@ -224,7 +224,7 @@ class KnowlegeBase:
         max_simbols_per_file = SHORT_FILES_DESCRIPTION_SIZE // len(children)
 
         for child in children:
-            obj_json = self.storage.get_json(get_file_id(child))
+            obj_json = self.storage.get_json(get_file_id_by_full_path(child))
 
             if json is None:
                 raise RuntimeError("Not found ID which must be presented!")
@@ -245,7 +245,7 @@ class KnowlegeBase:
 
         #print("File: " + path)
 
-        file_id = get_file_id(path)
+        file_id = get_file_id_by_full_path(path)
         file_json = self.storage.get_json(file_id)
 
         if file_json:
@@ -256,6 +256,7 @@ class KnowlegeBase:
             #print("Info was found for the file: " + path)
             return file_id
 
+        path = get_relative_path(path)
         text = get_file_content(path)
         response = self.ai_core.get_short_conversation_result(FILE_SUMMARY_PROMPT + text, 1500)
         self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
@@ -267,7 +268,7 @@ class KnowlegeBase:
 
         for child in os.listdir(path):
             child_path = os.path.join(path, child)
-            item_json = self.storage.get_json(get_file_id(child_path))
+            item_json = self.storage.get_json(get_file_id_by_full_path(child_path))
 
             if item_json:
                 children.append(item_json)
@@ -276,7 +277,7 @@ class KnowlegeBase:
 
     def _get_parent_json(self, path):
         parent = os.path.dirname(path)
-        folder_json = self.storage.get_json(get_file_id(parent))
+        folder_json = self.storage.get_json(get_file_id_by_full_path(parent))
 
         if folder_json is None or folder_json[KIND_FIELD] != DIRECTORY_KIND:
             raise ValueError("Cannot find the folder json!!!!!!!!!! " + parent)
@@ -325,7 +326,7 @@ class KnowlegeBase:
     def _generate_file_questions(self, path, short_request=False):
         file_name = os.path.basename(path)
 
-        file_id = get_file_id(path)
+        file_id = get_file_id_by_full_path(path)
         file_json = self.storage.get_json(file_id)
 
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
@@ -341,7 +342,8 @@ class KnowlegeBase:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]
 
         try:
-            response = self._get_generated_questions(file_name, get_file_content(path), folder_desc)
+            rel_path = get_relative_path(path)
+            response = self._get_generated_questions(file_name, get_file_content(rel_path), folder_desc)
             questions = parse_numbered_items(response)
             print("Parsed: " + str(questions))
             file_json[QUESTIONS_FIELD] = questions
