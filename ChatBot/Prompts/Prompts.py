@@ -1,44 +1,28 @@
-DOC_RELATIONSHIPS_PROMPT = (
-    "You are a network graph maker who extracts terms and their relations from a documentation file "
-    "of a software project. You are provided with a file and your task is to extract the ontology "
-    "of terms mentioned in the given context. These terms should represent the key concepts as per the context. \n"
-    "Thought 1: While traversing through each sentence, Think about the key terms mentioned in it.\n"
-        "\tTerms may include object, software service, class, interface, organization, team, person, \n"
-        "\tcondition, protocol, acronym, documents, concept etc.\n"
-        "\tTerms should be as atomistic as possible\n\n"
-    "Thought 2: Think about how these terms can have one on one relation with other terms.\n"
-        "\tTerms that are mentioned near each other are typically related to each other.\n"
-        "\tTerms can be related to many other terms\n\n"
-    "Thought 3: Find out the relation between each such related pair of terms. \n\n"
-    "Format your output as a list of json. Each element of the list contains a pair of terms and the "
-    "relation between them. Try to put at the first place the main term in the relation - some object which uses or "
-    "contains another object for example if it is possible. Format them like the following: \n"
-    "# JSON"
-    "[\n"
-    "   {\n"
-    '       "node_1": "A concept from extracted ontology",\n'
-    '       "node_2": "A related concept from extracted ontology",\n'
-    '       "edge": "relationship between the two concepts, node_1 and node_2 in one or two sentences"\n'
-    "   }, {...}\n"
-    "]\n"
-)
+FILE_SUMMARY_CONTEXT = \
+""""You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+Your task is to write a short description for manager of each file in that project. 
+Now you are working on the file [FILE_NAME] which is located in the directory [DIR_NAME]."""
 
-FILE_SUMMARY_PROMPT = \
-    """"Based on the following content, provide a concise summary highlighting the main purpose, 
-    key functionalities, and any notable features or methods. Here is the content: 
-    """
+FILE_SUMMARY_PROMPT = """Create short overview of the functionality for the following source code:
 
-DIRECTORY_SUMMARY_PROMPT = \
-""""Generate a summary that captures the collective functionality and key themes of the directory '[DIRECTORY_NAME]', 
-focusing on the overall role and contribution of the directory in the project context. 
-The directory contains several files, each contributing to the broader functionality. 
-Listed below are the files with minimal details:
+[SOURCES]
+"""
+
+DIRECTORY_SUMMARY_CONTEXT = \
+""""You are a software developer of a software project which can be described as '[PROJECT_DESCRIPTION]'.
+Your task is to write a short description for manager of each directory in that project. 
+Now you are working on the directory [DIR_NAME].
+The directory contains several items, each contributing to the broader functionality. 
+Listed below is the directory content with minimal details:
 
 [FILES_DESCRIPTION]
+"""
 
-Integrate these themes or functionalities to provide a holistic understanding of the directory's purpose and role,
+DIRECTORY_SUMMARY_PROMPT = \
+"""Integrate this content description to provide a holistic understanding of the directory's purpose and role,
 rather than elaborating on individual file contents.
-Don't mention each file - we need only the functionality of the whole directory."""
+Don't mention each file - we need only the functionality of the whole directory. """
+
 
 FILES_QUESTIONS_GENERATOR_PROMPT = \
 """I am working on a project which can be described as '[PROJECT_DESCRIPTION]'. 

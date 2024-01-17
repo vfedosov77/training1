@@ -207,10 +207,11 @@ class KnowlegeBase:
 
         dir_name = os.path.basename(path)
 
-        prompt = DIRECTORY_SUMMARY_PROMPT.replace("[FILES_DESCRIPTION]", descriptions).\
-            replace("[DIRECTORY_NAME]", dir_name)
+        context = add_project_description(DIRECTORY_SUMMARY_CONTEXT).\
+            replace("[DIR_NAME]", dir_name).\
+            replace("[FILES_DESCRIPTION]", descriptions)
 
-        response = self.ai_core.get_short_conversation_result(prompt, 1500)
+        response = self.ai_core.get_short_conversation_result(DIRECTORY_SUMMARY_PROMPT, 300, context)
 
         path = get_relative_path(path)
         self.storage.insert_json(dir_id, self._create_json_for_path(path, DIRECTORY_KIND, response))
@@ -267,7 +268,12 @@ class KnowlegeBase:
 
         path = get_relative_path(path)
         text = get_file_content(path)
-        response = self.ai_core.get_short_conversation_result(FILE_SUMMARY_PROMPT + text, 1500)
+        context = add_project_description(FILE_SUMMARY_CONTEXT).\
+            replace("[DIR_NAME]", os.path.basename(os.path.dirname(path))).\
+            replace("[FILE_NAME]", os.path.basename(path))
+
+        prompt = FILE_SUMMARY_PROMPT.replace("[SOURCES]", text)
+        response = self.ai_core.get_short_conversation_result(prompt, 200, context)
         self.storage.insert_json(file_id, self._create_json_for_path(path, FILE_KIND, response))
         self._on_step(f"A summary for {path} is created", response)
         return file_id
