@@ -6,7 +6,6 @@ from ChatBot.Common.Configuration import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.JSONDataStorage import JSONDataStorage
 
-from collections import defaultdict
 import sys, os
 
 def usage():
@@ -24,7 +23,7 @@ if not os.path.exists(path) or not os.path.isdir(path):
     print("Cannot find project directory: " + path)
     usage()
 
-db_path = os.path.join(path, "knowledge.db")
+db_path = os.path.join(path, DB_FILE_NAME)
 
 if not os.path.exists(db_path) or os.path.isdir(path):
     print("Cannot find project index file: " + db_path + ". Please execute index.py script to create the index.")
@@ -32,15 +31,16 @@ if not os.path.exists(db_path) or os.path.isdir(path):
 
 storage = JSONDataStorage(db_path)
 project_description = storage.get_json(PROJECT_DESCRIPTION_ID)
+folders_to_exclude = storage.get_json(FOLDERS_TO_EXCLUDE_ID)
 assert project_description, "Index is broken"
-set_app_config(Configuration(path, project_description))
+set_app_config(Configuration(path, project_description, folders_to_exclude))
 
 dispatcher = NotificationDispatcher()
 app = Dialog(dispatcher)
 answer_found = False
 
 ai_core = Gpt35AICore()
-base = KnowlegeBase(ai_core, dispatcher)
+base = KnowlegeBase(ai_core, dispatcher, storage)
 
 base.open_project()
 

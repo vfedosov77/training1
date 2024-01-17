@@ -1,5 +1,7 @@
 import os, sys
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+from ChatBot.Common.Configuration import get_config
+from ChatBot.Common.Utils import *
 
 
 class KeywordsIndex:
@@ -14,9 +16,15 @@ class KeywordsIndex:
             for name in files:
                 if name.split(".")[-1] in self.code_files_suffices:
                     path = os.path.join(root, name)
+
+                    relative_path = get_relative_path(path)
+
+                    if get_config().is_path_excluded(relative_path):
+                        continue
+
                     try:
                         with open(path)  as f:
-                            content = f.read(30000)
+                            content = get_file_content(relative_path)
 
                             if content.find(keyword) != -1:
                                 yield path

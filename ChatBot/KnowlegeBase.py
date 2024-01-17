@@ -21,8 +21,8 @@ SHORT_FILES_DESCRIPTION_SIZE = 5000
 
 
 class KnowlegeBase:
-    def __init__(self, ai_core, dispatcher: NotificationDispatcher):
-        self.storage: JSONDataStorage = None
+    def __init__(self, ai_core, dispatcher: NotificationDispatcher, storage: JSONDataStorage):
+        self.storage: JSONDataStorage = storage
         self.ai_core = ai_core
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
         self.doc_suffices = {"txt", "md"}
@@ -86,10 +86,6 @@ class KnowlegeBase:
 
     def index_project(self):
         project_path = get_config().get_project_path()
-        project_description = get_config().get_project_description()
-
-        self.storage = JSONDataStorage(os.path.join(project_path, "knowledge.db"))
-        self.storage.insert_json(PROJECT_DESCRIPTION_ID, project_description)
 
         # self._clear_brocken()
 
@@ -97,9 +93,9 @@ class KnowlegeBase:
             children = []
 
             for child in os.listdir(path):
-                child_path = os.path.join(path, child)
+                child_path = linux_style_path(os.path.join(path, child))
 
-                if "opencv-2.4.6.1" in child_path:
+                if get_config().is_path_excluded(get_relative_path(child_path)):
                     continue
 
                 try:
@@ -152,7 +148,7 @@ class KnowlegeBase:
             for child in os.listdir(path):
                 child_path = os.path.join(path, child)
 
-                if "opencv-2.4.6.1" in child_path:
+                if get_config().is_path_excluded(get_relative_path(child_path)):
                     continue
 
                 if os.path.isdir(child_path):
@@ -268,6 +264,10 @@ class KnowlegeBase:
 
         for child in os.listdir(path):
             child_path = os.path.join(path, child)
+
+            if get_config().is_path_excluded(get_relative_path(child_path)):
+                continue
+
             item_json = self.storage.get_json(get_file_id_by_full_path(child_path))
 
             if item_json:

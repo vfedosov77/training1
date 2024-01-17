@@ -83,15 +83,21 @@ def get_pair_of_ids_from_response(response: str):
     return int(parts[0]), int(parts[1].strip())
 
 
+def linux_style_path(path):
+    return path.replace("\\", "/")
+
+
 def check_if_relative_path(path):
-    assert path[0] != "/" and (len(path) < 2 or path[1] != ":"), "Path is not project relative path: " + path
+    is_relative = path[0] != "/" and (len(path) < 2 or path[1] != ":")
+    assert is_relative, "Path is not project relative path: " + path
+    return is_relative
 
 
 def get_relative_path(full_path):
     root_path = get_config().get_project_path()
-    assert os.path.commonpath([root_path, full_path]) == root_path, \
+    assert linux_style_path(os.path.commonpath([root_path, full_path])) == root_path, \
         "The path must be related to the project: " + full_path
-    return os.path.relpath(full_path, root_path)
+    return linux_style_path(os.path.relpath(full_path, root_path))
 
 
 def get_full_path(relative_path):
@@ -123,8 +129,8 @@ def get_file_content(relative_path):
 
 def get_file_id(relative_path):
     check_if_relative_path(relative_path)
-    path = relative_path.replace("\\", "/")
-    return path
+    relative_path = linux_style_path(relative_path)
+    return relative_path
 
 
 def get_file_id_by_full_path(path):
