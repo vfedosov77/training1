@@ -55,20 +55,17 @@ CHECK_THE_FILE_CONTEXT = """You are a software developer of a software project w
 This project is big and you are not familiar with all the parts of the project.
 Now you are working with one of the source files of a folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
 
-CHECK_THE_FILE_PROMPT = """Your task is to find a place in the code which is related to the question:
-[QUESTION]
-
-
-###Instruction###
+CHECK_THE_FILE_PROMPT = """###Instruction###
+Your task is to find a place in the code which is related to the question: '[QUESTION]'
 If there is such a place then write the name of the most related item (class, method, function, variable etc.). If the file contains no code which is closely related to the question - write '__NOTHING__' in your answer.
 This is the sources of the file '[FILE_NAME]':
 
-
+###Sources###
 [SOURCES]
 
 
+###Instruction###
 So the question is: [QUESTION]
-
 
 Write in your message __NOTHING__ keyword if you think that the code contains no any closely related to the question code. If the code is related - don't write this keyword.
 """

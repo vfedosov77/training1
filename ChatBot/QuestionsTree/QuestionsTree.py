@@ -149,7 +149,7 @@ class QuestionsTree:
         return answer
 
     def _on_step(self, short_name, description, kind=NORMAL_TEXT):
-        self.dispatcher(short_name, description, kind)
+        self.dispatcher.on_event(short_name, description, kind)
 
     def check_file(self, path, question):
         found_answer = False
@@ -172,7 +172,7 @@ class QuestionsTree:
         file_name = os.path.basename(path)
 
         context = add_project_description(CHECK_THE_FILE_CONTEXT)\
-            .replace("[PARENT_FOLDER_DESCRIPTION]", parent_desc)
+            .replace("[PARENT_FOLDER_DESCRIPTION]", parent_desc.replace("\n", " "))
 
         prompt = CHECK_THE_FILE_PROMPT.replace("[QUESTION]", question). \
             replace("[FILE_NAME]", file_name).\

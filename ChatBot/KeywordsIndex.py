@@ -27,7 +27,7 @@ class KeywordsIndex:
                             content = get_file_content(relative_path)
 
                             if content.find(keyword) != -1:
-                                yield path
+                                yield relative_path
                     except Exception:
                         pass
 

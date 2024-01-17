@@ -6,10 +6,10 @@ from functools import partial
 
 
 class Dialog(tk.Tk):
-    def __init__(self, dispatcher: NotificationDispatcher):
+    def __init__(self, info_provider, dispatcher: NotificationDispatcher):
         super().__init__()
 
-        self.info_provider = None
+        self.info_provider = info_provider
         self.lines2details = dict()
         self.cur_log_line = 0
         self.cur_chat_line = 0

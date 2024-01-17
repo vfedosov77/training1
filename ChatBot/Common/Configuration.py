@@ -1,12 +1,18 @@
+import ChatBot.Common.Utils as u
+
 import os
 from typing import List
 
 
 class Configuration:
     def __init__(self, path, project_description, black_list_dirs: List[str]):
-        self.path = path
+        self.path = u.linux_style_path(path)
         self.project_description = project_description
         self.black_list_dirs = [f.replace("\\", "/") for f in black_list_dirs]
+
+        if self.path.endswith("/"):
+            self.path = self.path[: -1]
+
 
     def get_project_description(self):
         return self.project_description

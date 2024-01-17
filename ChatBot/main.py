@@ -36,11 +36,12 @@ assert project_description, "Index is broken"
 set_app_config(Configuration(path, project_description, folders_to_exclude))
 
 dispatcher = NotificationDispatcher()
-app = Dialog(dispatcher)
+
 answer_found = False
 
 ai_core = Gpt35AICore()
 base = KnowlegeBase(ai_core, dispatcher, storage)
+app = Dialog(base, dispatcher)
 
 base.open_project()
 
