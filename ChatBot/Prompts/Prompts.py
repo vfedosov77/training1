@@ -36,10 +36,9 @@ Here is the full code of one of the file of that folder "[FILE_NAME]":
 I was forced to analyze the code of that file because it is important for the understanding of the following essential topics of the project functionality (I am providing only a short description here):
 1. """
 
-FILES_QUESTIONS_CONTEXT = """You are creating a big FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]. 
+FILES_QUESTIONS_CONTEXT = """You are creating a big FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'. 
 FAQ will be used by software developers and managers.
 In that FAQ only essential topics of the project functionality must be included.
-Take into account that a FAQ's user probably don't know about files/classes/functions names inside of that project. Therefore create topics for a user who is not aware of those names.
 Now you are working with the folder of that project which is described as: '[PARENT_FOLDER_DESCRIPTION]'."""
 
 FILES_QUESTIONS_PROMPT = \
@@ -52,15 +51,22 @@ Which topics would you add into FAQ looking at the following sources of the file
 
 
 ###Instruction###
-Remember: In that FAQ only essential topics of the project functionality must be included.
-Remember: a FAQ's user probably don't know about files/classes/functions names inside of that project. Therefore create topics for a user who is not aware of those names.
-He probably has a related bug or he investigates the project asking questions. 
-You should provide for each topic only one short sentence. 
-Topics must have numbers."""
-
-NO_NAMES_PROMPT = """Could you rewrite the following topics in such a way that they contain no class/files/directories and methods names and they must be not overlapped:
-[TOPICS_WITH_NUMBERS]
+Questions must be regarding the functionality which is implemented in the file. 
+Better write less topics which covers the functionality of the file than more.
+You should provide for each topic only one short sentence. Only project-level functionality aspects are interesting. 
+YOU WILL BE PENALIZED FOR THE CLASS OR FILE NAME USAGE. Use better construction like "How is the function is implemented?" instead of "How function od class A implemented in file A.cpp?"
+Format:
+1. Functionality aspect 1
+2. Functionality aspect 2
+...
 """
+
+NO_NAMES_PROMPT = \
+"""Could you rewrite these topics in such a way that they contain no class/files/directories and methods names. 
+DON'T MENTION FILES AND CLASSES AT ALL.
+Because we don't need in FAQ those names and they are make FAQ less readable - user don't know the names when he reads the FAQ questions - he needs only functionality aspects.
+If a topic makes no sense without the names - remove it. 
+All the questions must be asked from the application point of view."""
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY THE NUMBER"
 

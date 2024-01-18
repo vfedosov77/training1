@@ -347,8 +347,8 @@ class KnowlegeBase:
             prompt = add_project_description(FILES_QUESTIONS_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
-            response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
-            response = self.ai_core.get_short_conversation_result(NO_NAMES_PROMPT.replace("[TOPICS_WITH_NUMBERS]", response) , tokens_count, context)
+            response = self.ai_core.get_2_steps_conversation_result(prompt, NO_NAMES_PROMPT, tokens_count, context)[1]
+            # response = self.ai_core.get_short_conversation_result(NO_NAMES_PROMPT.replace("[TOPICS_WITH_NUMBERS]", response) , tokens_count, context)
 
         return response
 
@@ -365,7 +365,7 @@ class KnowlegeBase:
             #print("Found questions for the file " + path)
         #    return
 
-        folder_desc = self._get_parent_json(path)[DESCRIPTION_FIELD]
+        folder_desc = self._get_parent_json(path)[SHORT_DESCRIPTION_FIELD]
 
         if short_request:
             folder_desc = folder_desc[:SHORT_FOLDER_DESCRIPTION_SIZE]

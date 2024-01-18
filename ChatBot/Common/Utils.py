@@ -96,7 +96,6 @@ def check_if_relative_path(path):
 def get_relative_path(full_path):
     root_path = get_config().get_project_path()
     common = linux_style_path(os.path.commonpath([root_path, linux_style_path(full_path)]))
-    print(common, root_path)
     assert common == root_path, \
         "The path must be related to the project: " + full_path
     return linux_style_path(os.path.relpath(full_path, root_path))
