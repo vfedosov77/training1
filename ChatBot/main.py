@@ -1,5 +1,5 @@
 from ChatBot.AI.Gpt35AICore import Gpt35AICore
-from KnowlegeBase import KnowlegeBase
+from ChatBot.KnowlegeBase import KnowlegeBase
 from ChatBot.UI.Dialog import Dialog
 from ChatBot.Common.Constants import *
 from ChatBot.Common.Configuration import *
@@ -36,8 +36,6 @@ assert project_description, "Index is broken"
 set_app_config(Configuration(path, project_description, folders_to_exclude))
 
 dispatcher = NotificationDispatcher()
-
-answer_found = False
 
 ai_core = Gpt35AICore()
 base = KnowlegeBase(ai_core, dispatcher, storage)

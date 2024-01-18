@@ -1,5 +1,3 @@
-import random
-
 from PolicyTrainer import PolicyTrainer
 from NnTools.Predictor import Predictor
 from utils import seed_everything

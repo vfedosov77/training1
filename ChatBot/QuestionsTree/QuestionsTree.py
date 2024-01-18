@@ -74,10 +74,24 @@ class QuestionsTree:
 
         del self.questions2files[item]
 
-    def merge_leaf_nodes(self, path: List[str], to_leave: str, to_remove: str):
-        files = self.questions2files[to_remove]
-        self.questions2files[to_leave].update(files)
-        self.remove_node(path, to_remove)
+    def change_question(self, path: List[str], item: str, new_question: str):
+        if item == new_question:
+            return
+
+        cur_item = self._get_node_by_path(path)
+
+        if isinstance(cur_item, dict):
+            assert False, "Not implemented"
+
+        cur_item[cur_item.index(item)] = new_question
+        self.questions2files[new_question] = self.questions2files[item]
+        del self.questions2files[item]
+
+    def merge_leaf_nodes(self, path: List[str], node_1: str, node_2: str, merged_value: str):
+        files = self.questions2files[node_2]
+        self.questions2files[node_1].update(files)
+        self.change_question(path, node_1, merged_value)
+        self.remove_node(path, node_2)
 
     def get_corresponding_item(self, question, items):
         with_numbers = get_items_with_numbers(items)

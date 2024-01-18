@@ -12,7 +12,7 @@ from typing import Dict, Set
 
 class TreeBuilder:
     def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher):
-        questions2files = storage.get_json(QUESTIONS2FILES_ID)
+        questions2files = remove_duplications(storage.get_json(QUESTIONS2FILES_ID))
         questions_simplified = True
 
         if not questions2files:

@@ -1,12 +1,22 @@
+from ChatBot.AI.Gpt35AICore import Gpt35AICore
+from ChatBot.KnowlegeBase import KnowlegeBase
+from ChatBot.UI.Dialog import Dialog
+from ChatBot.Common.Constants import *
+from ChatBot.Common.Configuration import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+from ChatBot.JSONDataStorage import JSONDataStorage
+
+from collections import defaultdict
+import sys, os
+
+
 def on_step_callback(summary, details, kind=NORMAL_TEXT):
     global answer_found
     if summary.startswith("Found the answer:"):
         answer_found = True
 
-    app.add_log_entry(summary, details, kind)
+    # app.add_log_entry(summary, details, kind)
 
-
-dispatcher.add_events_observer(on_step_callback)
 
 def test():
     global answer_found
@@ -49,3 +59,25 @@ def test():
     for question in questions:
         val = results[question]
         print(f"{question}: {val}")
+
+
+path = sys.argv[1]
+db_path = os.path.join(path, DB_FILE_NAME)
+storage = JSONDataStorage(db_path)
+project_description = storage.get_json(PROJECT_DESCRIPTION_ID)
+folders_to_exclude = storage.get_json(FOLDERS_TO_EXCLUDE_ID)
+assert project_description, "Index is broken"
+set_app_config(Configuration(path, project_description, folders_to_exclude))
+dispatcher = NotificationDispatcher()
+
+answer_found = False
+
+ai_core = Gpt35AICore()
+base = KnowlegeBase(ai_core, dispatcher, storage)
+app = Dialog(base, dispatcher)
+dispatcher.add_events_observer(on_step_callback)
+base.open_project()
+
+test()
+
+app.mainloop()

@@ -65,7 +65,7 @@ NO_NAMES_PROMPT = \
 """Could you rewrite these topics in such a way that they contain no class/files/directories and methods names. 
 DON'T MENTION FILES AND CLASSES AT ALL.
 Because we don't need in FAQ those names and they are make FAQ less readable - user don't know the names when he reads the FAQ questions - he needs only functionality aspects.
-If a topic makes no sense without the names - remove it. 
+If a topic contains no concrete functionality aspects after the names removing - remove that topic. We don't need questions like: "What is the purpose of the file in the directory?" - it is not related to the functionality of our project.
 All the questions must be asked from the application point of view."""
 
 ONLY_NUMBER_PROMPT = "WRITE ONLY THE NUMBER"

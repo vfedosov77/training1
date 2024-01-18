@@ -7,6 +7,7 @@ from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 
 from typing import List
 import random
+import math
 
 
 class DuplicationsFinder:
@@ -34,6 +35,9 @@ class DuplicationsFinder:
                 topics_to_simplify.append((list.copy(parents), cur_topics))
 
         search(iter(tree), [])
+
+        topics_to_simplify.sort(key=lambda x: len(x[1]), reverse=True)
+
         has_changes = False
 
         for parents, questions in topics_to_simplify:
@@ -44,7 +48,8 @@ class DuplicationsFinder:
                 while len(questions) > 2 and self._find_duplication(questions, parents, tree, ai_core, dispatcher):
                     pass
             else:
-                samples_count = (len(questions) // MAX_ITEMS_IN_REQUEST + 1) * 2
+                samples_count = (len(questions) // MAX_ITEMS_IN_REQUEST + 1)
+                samples_count = int(math.pow(samples_count, 1.7))
 
                 for _ in  range(samples_count):
                     sample = random.sample(questions, min(len(questions), MAX_ITEMS_IN_REQUEST))
@@ -53,8 +58,14 @@ class DuplicationsFinder:
                     while len(sample) > 2 and self._find_duplication(sample, parents, tree, ai_core, dispatcher):
                         pass
 
-                    for item in was - set(sample):
+                    sample = set(sample)
+
+                    for item in was - sample:
                         questions.remove(item)
+
+                    # Add merged questions
+                    for item in sample - was:
+                        questions.append(item)
 
             if len(questions) != start_count:
                 has_changes = True
@@ -90,7 +101,7 @@ class DuplicationsFinder:
         return False
 
     @staticmethod
-    def _get_question_to_remove(id1, id2, questions, ai_core: AiCoreBase, topic):
+    def _get_united_question(id1, id2, questions, ai_core: AiCoreBase, topic):
         context = add_project_description(CHECK_DUPLICATION_CONTEXT).replace("[TOPIC_NAME]", topic)
         prompt = CHECK_DUPLICATION_PROMPT.\
             replace("[Question1]", questions[id1 - 1]).\
@@ -103,10 +114,12 @@ class DuplicationsFinder:
                 replace("[Question1]", questions[id1 - 1]). \
                 replace("[Question2]", questions[id2 - 1])
 
-            id_to_leave = ai_core.get_number_result(prompt, 10, context, 3)
+            new_topic = ai_core.get_short_conversation_result(prompt, 50, context)
+            start_tag = "RESULT: "
+            idx = new_topic.find(start_tag)
 
-            if id_to_leave is not None:
-                return 1 if id_to_leave == 2 else 2
+            if idx != -1:
+                return new_topic[idx + len(start_tag):]
 
         return None
 
@@ -121,24 +134,24 @@ class DuplicationsFinder:
         id1, id2 = ai_core.get_pair_of_ids_result(prompt, 20, context)
 
         if id1 is not None and id1 < len(questions) and id2 < len(questions):
-            id_to_remove = DuplicationsFinder._get_question_to_remove(id2, id1, questions, ai_core, topic)
+            new_question = DuplicationsFinder._get_united_question(id2, id1, questions, ai_core, topic)
 
-            if id_to_remove is not None:
-                id_to_leave, id_to_remove = (id2, id1) if id_to_remove == 1 else (id1, id2)
-                to_remove = questions[id_to_remove - 1]
-                to_leave = questions[id_to_leave - 1]
+            if new_question is not None:
+                to_remove = questions[id2 - 1]
+                to_leave = questions[id1 - 1]
 
-                tree.merge_leaf_nodes(parents, to_leave, to_remove)
+                tree.merge_leaf_nodes(parents, to_leave, to_remove, new_question)
                 questions.remove(to_remove)
+                questions[id1 - 1] = new_question
 
-                DuplicationsFinder._add_log_info(dispatcher, to_leave, to_remove)
+                DuplicationsFinder._add_log_info(dispatcher, to_leave, to_remove, new_question)
                 return True
 
         return False
 
     @staticmethod
-    def _add_log_info(dispatcher: NotificationDispatcher, to_leave, to_remove):
-        message = f"Questions '{to_leave}' and '{to_remove}' are similar"
+    def _add_log_info(dispatcher: NotificationDispatcher, to_leave, to_remove, new_question):
+        message = f"Questions '{to_leave}' and '{to_remove}' are similar. United under: {new_question}"
         print(message)
         dispatcher.on_event(message, None, NORMAL_TEXT)
 

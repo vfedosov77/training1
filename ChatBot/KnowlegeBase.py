@@ -82,7 +82,7 @@ class KnowlegeBase:
         project_path = get_config().get_project_path()
         self.keywords = KeywordsIndex(project_path, self.code_suffices, self.dispatcher)
 
-        questions2files = self.storage.get_json(QUESTIONS2FILES_ID)
+        questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_ID))
         main_topics = self.storage.get_json(MAIN_TOPICS_ID)
 
         if questions2files is None or main_topics is None:
@@ -347,8 +347,8 @@ class KnowlegeBase:
             prompt = add_project_description(FILES_QUESTIONS_PROMPT).replace("[FILE_NAME]", file_name). \
                 replace("[PARENT_FOLDER_DESCRIPTION]", folder_desc).replace("[SOURCES]", file_content)
 
-            response = self.ai_core.get_2_steps_conversation_result(prompt, NO_NAMES_PROMPT, tokens_count, context)[1]
-            # response = self.ai_core.get_short_conversation_result(NO_NAMES_PROMPT.replace("[TOPICS_WITH_NUMBERS]", response) , tokens_count, context)
+            # response = self.ai_core.get_2_steps_conversation_result(prompt, NO_NAMES_PROMPT, tokens_count, context)[1]
+            response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
 
         return response
 
@@ -361,9 +361,9 @@ class KnowlegeBase:
         if file_json is None or file_json[KIND_FIELD] != FILE_KIND:
             return
 
-        #if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
+        if QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list):
             #print("Found questions for the file " + path)
-        #    return
+            return
 
         folder_desc = self._get_parent_json(path)[SHORT_DESCRIPTION_FIELD]
 

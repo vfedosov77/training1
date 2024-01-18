@@ -1,4 +1,5 @@
 from ChatBot.Common.Configuration import get_config
+from typing import List, Set, Dict
 
 from typing import List
 import os, sys
@@ -148,4 +149,12 @@ def contains_all(collection1: set, collection2: set or list):
 
     return True
 
+
+def remove_duplications(questions2files: Dict[str, List]) -> Dict[str, Set]:
+    result = dict()
+
+    for question, files in questions2files.items():
+        result[question] = set(files)
+
+    return result
 
