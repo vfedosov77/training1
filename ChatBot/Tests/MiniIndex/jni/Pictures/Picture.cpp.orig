@@ -1,0 +1,213 @@
+#include "Picture.h"
+
+PicturePosition PicturePosition::defaultPosition = {{0, 0, 0}, {0, 0, 1}, {0, -1, 0}};
+
+struct GradientDirection : public AngleComparableBase<Vector2D> {
+	Vector2D direction;
+
+	GradientDirection(const Vector2D &_vec) : AngleComparableBase(_vec), direction(_vec)
+
+	{
+		assert(!_vec.empty());
+	}
+};
+
+size_t fillLineGradientsByBresenham(const Edge &_line, int *_pArray, size_t _cHaarSize, const IntegralTransform &_integral) {
+	const Vector2D vec = _line.getVector();
+	const size_t cArraySize = std::max(std::abs(vec.x), std::abs(vec.y)) + 1;
+	assert(cArraySize < GradientArrayMinMax::ms_cArraySize);
+	BresenhamIterator it = BresenhamIterator::create(_line.v1, _line.v2);
+	const Rect2D allowedRect(_cHaarSize, _cHaarSize, g_nWidth - _cHaarSize - 1, g_nHeight - _cHaarSize - 1);
+
+	do {
+		const Vector2D curPoint = it.point();
+		if (allowedRect.contains(curPoint)) {
+			const Vector2D calculated = _integral.calcGradVector(curPoint, _cHaarSize);
+			*(_pArray++) = calculated.x*vec.x + calculated.y*vec.y;
+		} else
+			*(_pArray++) = 0;
+	} while (it.moveNext());
+
+	return cArraySize;
+}
+
+void calculateArrayAlongGrad(int _nKeyPointSize, const Vector2D &_point, GradientArrayMinMax &_gradient, const IntegralTransform &_integral) {
+	const Vector2D &_grad = _gradient.direction;
+	const int nHaarSize = (_nKeyPointSize + 2)/4;
+	_gradient.cGradCount = fillLineGradientsByBresenham(Edge(_point - _grad, _point + _grad), _gradient.gradArrayX, nHaarSize, _integral);
+	_gradient.updateMinMax();
+}
+
+inline
+float calcGaussian(float _fValue2, int _nLevelId) {
+	return g_fLevelGaussiaMultipliers[_nLevelId]*::exp(_fValue2*g_fLevelGaussiaExpMultiplier[_nLevelId]);
+}
+
+inline
+Vector2D calcGradInPoint(const Vector2D &_point, const Vector2D &_centrePoint, int _nLevelId, const IntegralTransform &_integral, int _nWidth, int _nHeigth) {
+	int nStep =  pLevelZooms[_nLevelId];
+
+	if (_point.x < nStep || _point.y < nStep || _point.x >= _nWidth - nStep || _point.y >= _nHeigth - nStep)
+		return Vector2D();
+
+	int nX = _integral.calcVertHaar(_point, nStep)*32;
+	int nY = _integral.calcHorHaar(_point, nStep)*32;
+	const float fDist2 = (_point - _centrePoint).length2();//(pointInPlane - _centrePoint).length2();
+
+	float fWeigth = calcGaussian(fDist2, _nLevelId);
+	return Vector2D(round(nX*fWeigth), round(nY*fWeigth));
+}
+
+void calcGradients(const Vector2D &_point, int _nLevelId, const IntegralTransform &_integral, int _nWidth, int _nHeigth, std::vector<Vector2D> &_bestSumms) {
+	const int nStep = pLevelZooms[_nLevelId];
+	const int nRadius = nStep*4;
+	std::vector<GradientDirection> gradients;
+
+	static const int nLevelThresholds[] = {12, 36, 64, 108, 184, 300};
+	const int nThreshold = nLevelThresholds[_nLevelId]*16;
+	for (int nDX = -nRadius; nDX <= nRadius; nDX += nStep/3) {
+		for (int nDY = -nRadius; nDY <= nRadius; nDY += nStep/3) {
+			const int nX = _point.x - nDX;
+			const int nY = _point.y - nDY;
+			const Vector2D vec = calcGradInPoint(Vector2D(nX, nY), _point, _nLevelId, _integral, _nWidth, _nHeigth);
+
+			if (vec.length2() > nThreshold)
+				gradients.emplace_back(vec);
+		}
+	}
+
+	std::sort(gradients.begin(), gradients.end());
+	static const Vector2D rotateBy(fast_floor(1024*::cos(1) + 0.5), fast_floor(1024*::sin(1) + 0.5));
+	std::list<GradientDirection *> dirs;
+	Vector2D summ;
+	std::vector<GradientDirection>::const_iterator iEnd;
+	_bestSumms.push_back(Vector2D(0, 0));
+	bool bWasLowLevel = false;
+	int64_t lnLastLen2 = 0;
+	//Move the window with size 1 rad and change longest summ vector in this window.
+	bool bFirstRemoved = false;
+	for (auto iDir = gradients.begin(); iDir != iEnd; ++iDir) {
+		if (iDir == gradients.end()) {
+			iDir = gradients.begin();
+			if (!bFirstRemoved) {
+				bFirstRemoved = true;
+				iEnd = gradients.end();
+			}
+		}
+
+		summ += iDir->direction;
+		dirs.push_back(&*iDir);
+		const Vector2D &cur = iDir->direction;
+		Vector2D rotated = rotateByNormalizedVector(cur.length2() > 0xFFFF ? cur : cur*256, rotateBy);
+
+		while (rotated.isOnLeftSide(dirs.front()->direction) == -1 || cur.isOnLeftSide(dirs.front()->direction) == 1) {
+			assert(dirs.size() > 1);
+			const Vector2D &last = dirs.front()->direction;
+			summ -= last;
+			dirs.pop_front();
+
+			if (!bFirstRemoved) {
+				bFirstRemoved = true;
+				iEnd = iDir;
+			}
+		}
+
+		assert(!dirs.empty());
+
+		if (!bFirstRemoved)
+			continue;
+
+		const int64_t lnLen2 = summ.length2();
+		if (lnLen2 > lnLastLen2 || (bWasLowLevel && lnLen2 > lnLastLen2*2/3)) {
+			if (bWasLowLevel)
+				_bestSumms.push_back(summ);
+			else
+				_bestSumms.back() = summ;
+
+			lnLastLen2 = lnLen2;
+			bWasLowLevel = false;
+		} else if (lnLen2 < lnLastLen2/3)
+			bWasLowLevel = true;
+	}
+
+	std::sort(_bestSumms.begin(), _bestSumms.end(), [](const Vector2D &v1, const Vector2D &v2) {return v1.length2() < v2.length2();});
+	std::vector<uint64_t> lens;
+	for (auto &v : _bestSumms)
+		lens.push_back(v.length2());
+
+	auto iFrom = std::lower_bound(lens.begin(), lens.end(), lens.back()/2);
+	assert(iFrom != lens.end());
+	_bestSumms.erase(_bestSumms.begin(), _bestSumms.begin() + (iFrom - lens.begin()));
+}
+
+void Picture::calcDescriptor(KeyPoint3D &_kp, const LevelData &_data) const {
+	assert(_kp.gradientDirection.empty());
+	std::vector<Vector2D> bestSumms;
+	calcGradients(_kp.screenPoint, _kp.nLevelId, m_integral, g_nWidth, g_nHeight, bestSumms);
+	_kp.gradientDirection.emplace_back();
+
+	for (size_t c = 0, cCount = bestSumms.size(); c != cCount; ++c) {
+		const bool bLast = c == cCount - 1;
+		if (fillGradient(_kp, _kp.gradientDirection.back(), bestSumms[c], _data)) {
+			if (!bLast)
+				_kp.gradientDirection.emplace_back();
+		} else if (bLast)
+			_kp.gradientDirection.pop_back();
+	}
+}
+
+<<<<<<< HEAD
+bool Picture::fillGradient(KeyPoint3D &_kp, Gradient &_grad, const Vector2D &_direction, const LevelData &_data) const {
+=======
+#include "Draw/Dumper.h"
+
+bool Picture::fillGradient(const KeyPoint3D &_kp, Gradient &_grad, const Vector2D &_direction, const LevelData &_data) const {
+>>>>>>> 8171d49... diagrams
+	const Vector2DF gradF = _kp.getGradVecF(_direction);
+	//Rotate 90 deg because true invariant direction is direction that is orthogonal to gradient.
+	const Vector2DF ortF(gradF.y, -gradF.x);
+	const Vector2DF recalculatedGradF = m_frustum.getOrtDirrection(_kp.screenPoint, ortF, m_earthPlane);
+
+	GradientArrayMinMax minMax;
+	if (!recalculatedGradF.empty()) {
+		_grad.fOrtZoom = _kp.getGradVecSize()/recalculatedGradF.length();
+		minMax.ort = ortF.toInt();
+		_grad.ortF = ortF;
+		_grad.directionF = _kp.getGradVecF(recalculatedGradF);
+		minMax.direction = _grad.directionF.toInt();
+	} else {
+		_grad.directionF = gradF;
+		minMax.direction = gradF.toInt();
+		_grad.fOrtZoom = 0;
+	}
+
+	calculateArrayAlongGrad(_kp.nSize, _kp.screenPoint, minMax, m_integral);
+	if (minMax.cGradCount == 0)
+		return false;
+
+
+	if (_kp.nId == 85 || _kp.nId == 472) {
+		std::stringstream stream1;
+		stream1 << "/home/vfedosov/temp/point_graph" << _kp.nId << ".jpg";
+		std::cout << stream1.str() << std::endl;
+		saveDiagramm(stream1.str().data(), const_cast<int *>(minMax.gradArrayX), minMax.cGradCount, minMax.fGradXMinIdx, minMax.fGradXMaxIdx);
+	}
+	_grad.update(_kp, minMax, _data, m_integral);
+	return true;
+}
+
+void Picture::fillLineGradients(const Edge &_line, float *pArray, size_t _cSize) const {
+	const Vector2D vec = _line.getVector().getNormalized();
+	const float fStepX = float(_line.v2.x - _line.v1.x)/(_cSize + 5);
+	const float fStepY = float(_line.v2.y - _line.v1.y)/(_cSize + 5);
+	float fX = _line.v1.x + 0.5 + 3*fStepX;
+	float fY = _line.v1.y + 0.5 + 3*fStepY;
+
+	for (const float *pEnd = pArray + _cSize; pArray != pEnd; ++pArray) {
+		Vector2D grad = m_integral.calcGradVector(Vector2D(fast_floor(fX), fast_floor(fY)), 8);
+		grad = rotateByNormalizedVector(grad, vec);
+		*pArray = grad.x;
+		fX += fStepX;
+		fY += fStepY;
+	}
+}

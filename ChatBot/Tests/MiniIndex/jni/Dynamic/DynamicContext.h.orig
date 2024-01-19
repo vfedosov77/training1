@@ -1,0 +1,106 @@
+#ifndef _DYNAMIC_CONTEXT_H_
+#define _DYNAMIC_CONTEXT_H_
+
+#include "BaseElements/Primitives3D.h"
+#include "BaseElements/Frustum.h"
+#include "Pictures/Picture.h"
+#include "FloorDetector.h"
+
+struct TracingPointData {
+	TracingPointData() : prevPictureDirection(Vector2DF::ms_notValidVector) { }
+
+	const KeyPoint3D *pBasePoint;
+	Vector2D prevPicturePoint;
+	Vector2DF prevPictureDirection;
+	FloorDetector::KeyPairData detected;
+<<<<<<< HEAD
+	std::vector<KeyPair> candidates;
+
+	void updatePrevPictureData(const KeyPoint3D *_pPoint) {
+		prevPicturePoint = _pPoint->screenPoint;
+		if (_pPoint->gradientDirection.size() != 1)
+			prevPictureDirection = Vector2DF::ms_notValidVector;
+		else {
+			const Vector2DF &ort = _pPoint->gradientDirection.front().ortF;
+			prevPictureDirection = Vector2DF(-ort.y, ort.x);
+		}
+	}
+=======
+	std::list<KeyPair> candidates;
+};
+
+struct ComparedPair {
+	Vector2D p1, p2;
+
+	ComparedPair(const Vector2D &_point1, const Vector2D &_point2) {
+		if (_point1 < _point2) {
+			p1 = _point1;
+			p2 = _point2;
+		} else {
+			p2 = _point1;
+			p1 = _point2;
+		}
+	}
+
+	bool operator <(const ComparedPair &_other) const {
+		return p1 == _other.p1 ? p2 < _other.p2 : p1 < _other.p1;
+	}
+>>>>>>> 667463d... Начата динамика на итераторах.
+};
+
+struct DynamicContext {
+	OrientedFrustum frustum;
+	Vector3D positionMoving;
+	Vector3D directionMoving;
+	std::vector<const KeyPoint3D *> searchingPoints;
+
+	std::vector<TracingPointData> tracingPoints;
+	std::shared_ptr<Picture> lastPicture;
+
+	std::list<KeyPoint3D> pointsBuffer;
+	std::set<ComparedPair> comparedPairs;
+
+	struct TemporaryDataLock {
+		DynamicContext &context;
+		TemporaryDataLock(DynamicContext &_context) : context(_context) { }
+		~TemporaryDataLock() {
+			context.clearTemporaryData();
+		}
+	};
+
+	void testConsistency() {
+		for (TracingPointData &data1 : tracingPoints)
+			for (TracingPointData &data2 : tracingPoints)
+				if (&data1 != &data2)
+					assert(data1.pBasePoint->screenPoint != data2.pBasePoint->screenPoint);
+	}
+
+	DynamicContext() {
+
+	}
+
+	void update(const Picture &_currentPicture) {
+		const OrientedFrustum &newFrustum = _currentPicture.getOrientedFrustum();
+		frustum = newFrustum;
+//		if (!frustum.getPosition().isNotValid()) {
+//			positionMoving = positionMoving/2 + newFrustum.getPosition() - frustum.getPosition();
+//		}
+	}
+
+	int getPossibleCoordShift() const {
+		static const int nShift = 32;
+		return nShift;
+	}
+
+	void clearTemporaryData() {
+		for (auto &point : tracingPoints) {
+			point.detected.invalidate();
+			point.candidates.clear();
+		}
+
+		comparedPairs.clear();
+		pointsBuffer.clear();
+	}
+};
+
+#endif //_DYNAMIC_CONTEXT_H_
