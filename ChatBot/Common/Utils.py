@@ -163,3 +163,9 @@ def prepare_for_storage(questions2files: Dict[str, List]) -> Dict[str, Set]:
     # Set -> List
     to_store = {key: [i for i in value] for key, value in questions2files.items()}
     return to_store
+
+
+def print_topics(topics):
+    for topic, questions in topics.items():
+        print(topic + ". " + str(len(questions)) + ": " + str(questions))
+

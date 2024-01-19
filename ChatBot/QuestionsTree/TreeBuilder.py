@@ -112,7 +112,7 @@ class TreeBuilder:
                     assert False, "Not implemented"
 
                 if isinstance(items1, dict) and isinstance(items2, list):
-                    TreeBuilder._distribute_questions(items2, items1, ai_core)
+                    TreeBuilder._distribute_questions(items2, items1, ai_core, False)
                     result[t1] = items1
                     has_changes = True
                 else:
@@ -131,15 +131,18 @@ class TreeBuilder:
 
         if old_main_topics:
             print("Loaded topics:")
-            TreeBuilder._print_topics(old_main_topics)
+            print_topics(old_main_topics)
+
+            # all_questions = set(questions2files.keys())
+            # TreeBuilder._distribute_questions(all_questions, old_main_topics, ai_core, True)
             return TreeBuilder._merge_trees(main_topics, old_main_topics, ai_core, storage)
 
         count = len(questions2files)
         print(f"Questions count: {count}")
 
         all_questions = set(questions2files.keys())
-        TreeBuilder._distribute_questions(all_questions, main_topics, ai_core)
-
+        TreeBuilder._distribute_questions(all_questions, main_topics, ai_core, False)
+        #TreeBuilder._distribute_questions(all_questions, main_topics, ai_core, True)
         TreeBuilder._commit_changes(storage, main_topics)
 
         #topics2questions = TreeBuilder._group_questions(questions2files)
@@ -147,21 +150,21 @@ class TreeBuilder:
         return main_topics
 
     @staticmethod
-    def _distribute_questions( questions, topics, ai_core: AiCoreBase):
+    def _distribute_questions( questions, topics, ai_core: AiCoreBase, only_for_small_groups: bool):
         for question in questions:
             detected = TreeBuilder._get_topic_for_question(question, topics, ai_core)
 
             if detected:
                 topic = topics[detected]
                 if isinstance(topic, dict):
-                    TreeBuilder._distribute_questions([question], topic, ai_core)
-                else:
+                    TreeBuilder._distribute_questions([question], topic, ai_core, only_for_small_groups)
+                elif question not in topic and (not only_for_small_groups or len(topic) < MAX_ITEMS_IN_REQUEST):
                     topic.append(question)
             else:
                 topics["Other"].append(question)
 
         print("Questions are distributed:")
-        TreeBuilder._print_topics(topics)
+        print_topics(topics)
 
     @staticmethod
     def _get_topic_for_question(question: str, topics_dict: dict, ai_core: AiCoreBase) -> str:
@@ -175,8 +178,3 @@ class TreeBuilder:
 
         topic_id = get_idx_from_response(result)
         return topics[topic_id - 1] if topic_id < len(topics) else None
-
-    @staticmethod
-    def _print_topics( topics):
-        for topic, questions in topics.items():
-            print(topic + ". " + str(len(questions)) + ": " + str(questions))

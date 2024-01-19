@@ -54,6 +54,9 @@ class QuestionsTree:
         self.dispatcher = dispatcher
         self.checked_files = set()
 
+        print("Loaded topics:")
+        print_topics(main_topics)
+
     def get_answer(self, question: str, chat_history = None):
         try:
             self.checked_files.clear()
