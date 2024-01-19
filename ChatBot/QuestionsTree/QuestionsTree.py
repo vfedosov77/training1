@@ -4,6 +4,7 @@ from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Utils import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.AI.AiCoreBase import AiCoreBase
+from ChatBot.QuestionsTree.FileQuestionChecker import FileQuestionsChecker, get_file_questions_checker
 
 import os
 from typing import Dict, List, Set
@@ -145,7 +146,8 @@ class QuestionsTree:
 
                     for file in self.questions2files[cur_question]:
                         if file not in self.checked_files:
-                            result, path = self.check_file(file, question)
+                            result, path = get_file_questions_checker()(file, question, self.dispatcher)
+                            self.checked_files.add(file)
 
                             if result:
                                 answer = (result, path)
@@ -164,50 +166,6 @@ class QuestionsTree:
 
     def _on_step(self, short_name, description, kind=NORMAL_TEXT):
         self.dispatcher.on_event(short_name, description, kind)
-
-    def check_file(self, path, question):
-        found_answer = False
-
-        def check_answer( answer):
-            nonlocal found_answer
-
-            if answer.find("NOTHING") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
-                header = "Found the answer: " if answer.find("NOTHING") == -1 else "Found a relevant info: "
-                self._on_step(header + answer.replace("__NOTHING__", "NOT_SURE"), file_content, SELECTED_TEXT)
-                found_answer = True
-                return False
-
-            return True
-
-        file_content = get_file_content(path)
-        parent = os.path.dirname(path)
-        parent_info = self.storage.get_json(get_file_id(parent))
-        parent_desc = parent_info[DESCRIPTION_FIELD] if parent_info else "No description available"
-        file_name = os.path.basename(path)
-
-        context = add_project_description(CHECK_THE_FILE_CONTEXT)\
-            .replace("[PARENT_FOLDER_DESCRIPTION]", parent_desc.replace("\n", " "))
-
-        prompt = CHECK_THE_FILE_PROMPT.replace("[QUESTION]", question). \
-            replace("[FILE_NAME]", file_name).\
-            replace("[SOURCES]", file_content)
-
-        self._on_step(f"Check file {file_name} content.", "Context: \n" + context + "\nPrompt:\n" + prompt)
-
-        result = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
-                                                                   ONLY_RELATED_ITEM_NAME_PROMPT,
-                                                                   check_answer,
-                                                                   100,
-                                                                   context)
-
-        self.checked_files.add(path)
-
-        if found_answer and result != "__NOTHING__":
-            self._on_step(result, file_content, ITEM_TO_HIGHLIGHT)
-            return result, path
-
-        self._on_step(f"No relevant info was found.", result)
-        return None, None
 
 
     # def _find_questions_related_to_topic(self, questions: List[str], topic):

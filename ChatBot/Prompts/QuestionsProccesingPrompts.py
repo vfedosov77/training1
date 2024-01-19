@@ -30,3 +30,4 @@ GET_ITEM_TO_REMOVE_PROMPT = """Unite these 2 topics into 1 common topic which co
 The result must be one sentence. Format the result as:
 RESULT: The short topic description
 """
+

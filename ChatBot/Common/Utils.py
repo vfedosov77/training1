@@ -158,3 +158,8 @@ def remove_duplications(questions2files: Dict[str, List]) -> Dict[str, Set]:
 
     return result
 
+
+def prepare_for_storage(questions2files: Dict[str, List]) -> Dict[str, Set]:
+    # Set -> List
+    to_store = {key: [i for i in value] for key, value in questions2files.items()}
+    return to_store

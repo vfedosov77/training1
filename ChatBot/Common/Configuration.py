@@ -24,7 +24,6 @@ class Configuration:
         return any(path.startswith(d) for d in self.black_list_dirs)
 
 
-
 config: Configuration = None
 
 

@@ -7,6 +7,7 @@ from ChatBot.KeywordsIndex import KeywordsIndex
 from ChatBot.Common.Utils import *
 from ChatBot.Common.Constants import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+from ChatBot.QuestionsTree.FileQuestionChecker import *
 
 import torch
 import os
@@ -20,7 +21,7 @@ SHORT_FOLDER_DESCRIPTION_SIZE = 3000
 SHORT_FILES_DESCRIPTION_SIZE = 5000
 
 
-class KnowlegeBase:
+class KnowledgeBase:
     def __init__(self, ai_core, dispatcher: NotificationDispatcher, storage: JSONDataStorage):
         self.storage: JSONDataStorage = storage
         self.ai_core = ai_core
@@ -29,6 +30,8 @@ class KnowlegeBase:
         self.tree = None
         self.keywords = None
         self.dispatcher = dispatcher
+
+        self._inject_dependencies()
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
         assert self.tree, "Project was not opened"
@@ -62,7 +65,7 @@ class KnowlegeBase:
                 return self.tree.get_answer(question)
 
             for path in results:
-                result = self.tree.check_file(path, question)
+                result = get_file_questions_checker()(path, question, self.dispatcher)
 
                 if result and result[0] is not None:
                     return result
@@ -82,7 +85,7 @@ class KnowlegeBase:
         project_path = get_config().get_project_path()
         self.keywords = KeywordsIndex(project_path, self.code_suffices, self.dispatcher)
 
-        questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_ID))
+        questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_CHECKED_ID))
         main_topics = self.storage.get_json(MAIN_TOPICS_ID)
 
         if questions2files is None or main_topics is None:
@@ -133,6 +136,9 @@ class KnowlegeBase:
         self.tree = builder(self.ai_core, self.storage, self.dispatcher)
 
         self._on_step("Index was successfully created.", None, SELECTED_TEXT)
+
+    def _inject_dependencies(self):
+        set_file_questions_checker(FileQuestionsChecker(self.ai_core, self.storage))
 
     def _format_chat_history(self, history):
         return "".join(role + ": " + message + "\n" for role, message in history)

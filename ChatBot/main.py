@@ -1,5 +1,5 @@
 from ChatBot.AI.Gpt35AICore import Gpt35AICore
-from ChatBot.KnowlegeBase import KnowlegeBase
+from ChatBot.KnowledgeBase import KnowledgeBase
 from ChatBot.UI.Dialog import Dialog
 from ChatBot.Common.Constants import *
 from ChatBot.Common.Configuration import *
@@ -38,7 +38,7 @@ set_app_config(Configuration(path, project_description, folders_to_exclude))
 dispatcher = NotificationDispatcher()
 
 ai_core = Gpt35AICore()
-base = KnowlegeBase(ai_core, dispatcher, storage)
+base = KnowledgeBase(ai_core, dispatcher, storage)
 app = Dialog(base, dispatcher)
 
 base.open_project()

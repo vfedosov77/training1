@@ -1,4 +1,5 @@
 from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
+from ChatBot.QuestionsTree.QuestionsChecker import QuestionsChecker
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Constants import *
 from ChatBot.Common.Utils import *
@@ -12,10 +13,20 @@ from typing import Dict, Set
 
 class TreeBuilder:
     def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher):
-        questions2files = remove_duplications(storage.get_json(QUESTIONS2FILES_ID))
-        questions_simplified = True
+        questions2files = storage.get_json(QUESTIONS2FILES_CHECKED_ID)
 
-        if not questions2files:
+        if questions2files is None:
+            questions2files = self._fill_questions2files(storage)
+            #questions2files = storage.get_json(QUESTIONS2FILES_ID)
+
+            if questions2files is not None:
+                QuestionsChecker()(questions2files, ai_core, dispatcher)
+                storage.insert_json(QUESTIONS2FILES_CHECKED_ID, prepare_for_storage(questions2files))
+
+        if questions2files:
+            questions2files = remove_duplications(questions2files)
+            questions_simplified = True
+        else:
             questions2files = self._fill_questions2files(storage)
             questions_simplified = False
 
@@ -29,14 +40,13 @@ class TreeBuilder:
 
         return tree
 
+
     @staticmethod
     def _commit_changes(storage, main_topics, questions2files=None):
         storage.insert_json(MAIN_TOPICS_ID, main_topics)
 
         if questions2files:
-            # Set -> List
-            to_store = {key: [i for i in value] for key, value in questions2files.items()}
-            storage.insert_json(QUESTIONS2FILES_ID, to_store)
+            storage.insert_json(QUESTIONS2FILES_ID, prepare_for_storage(questions2files))
 
     @staticmethod
     def _fill_questions2files(storage):

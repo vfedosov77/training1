@@ -1,5 +1,5 @@
 from ChatBot.AI.Gpt35AICore import Gpt35AICore
-from KnowlegeBase import KnowlegeBase
+from KnowledgeBase import KnowledgeBase
 from ChatBot.UI.IndexUI import IndexUI
 from ChatBot.Common.Configuration import *
 from ChatBot.Common.Constants import *
@@ -45,7 +45,7 @@ dispatcher = NotificationDispatcher()
 app = IndexUI(dispatcher)
 
 ai_core = Gpt35AICore()
-base = KnowlegeBase(ai_core, dispatcher, storage)
+base = KnowledgeBase(ai_core, dispatcher, storage)
 base.index_project()
 
 base
