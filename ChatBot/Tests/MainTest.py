@@ -5,6 +5,7 @@ from ChatBot.Common.Constants import *
 from ChatBot.Common.Configuration import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.JSONDataStorage import JSONDataStorage
+from ChatBot.Keywords.EmbeddingChecker import EmbeddingChecker
 
 from collections import defaultdict
 import sys, os
@@ -59,6 +60,17 @@ def test():
     for question in questions:
         val = results[question]
         print(f"{question}: {val}")
+
+
+
+embeddings_ai = EmbeddingChecker()
+embeddings = embeddings_ai.embed_text("Where the camera focus is processed? Where it is done?")
+
+#with torch.no_grad():
+#    outputs = model(**inputs)
+#    # embeddings from the last layer
+#    embeddings = outputs.last_hidden_state
+
 
 
 path = sys.argv[1]

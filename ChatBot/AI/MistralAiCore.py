@@ -36,8 +36,6 @@ class MistralAiCore(AiCoreBase):
                 device_map="auto",
                 trust_remote_code=True)
 
-            self.first_block = self.model.transformer.layers[0]
-
             # self.config = AutoConfig.from_pretrained(MODEL_NAME, cache_dir=RESOURCES_FOLDER)
             # print("Window: " + str(config.max_position_embeddings))
 
@@ -57,11 +55,7 @@ class MistralAiCore(AiCoreBase):
                 device_map="auto"
             )
         else:
-            self.model = None
-            self.text_generation_pipe = None
-            self.conversational_pipe = None
-
-            self.first_block
+            raise NotImplemented()
 
     def is_generation_preferred(self):
         return True
@@ -111,11 +105,10 @@ class MistralAiCore(AiCoreBase):
 
         raise BrokenPipeError()
 
-    def get_embeddings(self, text: str):
-        inputs = self.tokenizer(text, return_tensors='pt')
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-            # embeddings from the last layer
-            embeddings = outputs.last_hidden_state
-            return embeddings
+    # def get_embeddings(self, text: str):
+    #     self.core_embeddings_model.embed_query(text)
+    #     encoded_input = self.tokenizer(text, truncation=True, padding=True)
+    #     input_ids = encoded_input["input_ids"]
+    #     embeddings = self.model.get_input_embeddings().weight[input_ids, :]
+    #     return embeddings
 

@@ -1,12 +1,7 @@
 from ChatBot.Prompts.Prompts import *
-from ChatBot.Prompts.PromptUtils import *
-from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
 from ChatBot.QuestionsTree.TreeBuilder import TreeBuilder
-from ChatBot.KeywordsIndex import KeywordsIndex
-from ChatBot.Common.Utils import *
-from ChatBot.Common.Constants import *
-from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
+from ChatBot.Keywords.KeywordsIndex import KeywordsIndex
 from ChatBot.QuestionsTree.FileQuestionChecker import *
 
 import torch
