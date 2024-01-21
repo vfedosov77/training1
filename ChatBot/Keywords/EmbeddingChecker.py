@@ -9,8 +9,8 @@ from typing import List
 import os
 
 MODEL_ID = 'BAAI/bge-small-en-v1.5'
-KEYWORD_INDEX_FILE_NAME = "keywords.bin"
-KEYWORD_CACHE_FILE_NAME = "keywords.bin.pkl"
+KEYWORD_INDEX_FILE_NAME = "keywords2.bin"
+KEYWORD_CACHE_FILE_NAME = "keywords2.bin.store"
 
 
 class EmbeddingChecker:

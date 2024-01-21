@@ -25,8 +25,8 @@ class IndexBuilder:
             if PATH_FIELD in item and item[KIND_FIELD] == FILE_KIND:
                 keywords.extend(self._create_keywords(item[PATH_FIELD]))
                 count += 1
-                if count > 20:
-                    break
+                #if count > 20:
+                #    break
 
         self.checker.create_storage(keywords)
         dispatcher.on_event("Keywords index was successfully built.", None, SELECTED_TEXT)
