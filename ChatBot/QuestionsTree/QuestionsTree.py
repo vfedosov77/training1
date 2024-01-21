@@ -4,7 +4,8 @@ from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Utils import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.AI.AiCoreBase import AiCoreBase
-from ChatBot.QuestionsTree.FileQuestionChecker import FileQuestionsChecker, get_file_questions_checker
+from ChatBot.QuestionsTree.FileQuestionChecker import FileQuestionsChecker, get_file_questions_checker, \
+    get_processed_files
 
 import os
 from typing import Dict, List, Set
@@ -52,17 +53,12 @@ class QuestionsTree:
         self.storage: JSONDataStorage = storage
         self.main_topics: Dict[str, List[str]] = main_topics
         self.dispatcher = dispatcher
-        self.checked_files = set()
 
         print("Loaded topics:")
         print_topics(main_topics)
 
     def get_answer(self, question: str, chat_history = None):
-        try:
-            self.checked_files.clear()
-            return self._get_answer(question, self.main_topics)
-        finally:
-            self.checked_files.clear()
+        return self._get_answer(question, self.main_topics)
 
     def __iter__(self):
         return QuestionsTree.Iterator(self.main_topics)
@@ -138,7 +134,7 @@ class QuestionsTree:
         if isinstance(questions, dict):
             answer = self._get_answer(question, questions, None)
         else:
-            questions = [q for q in questions if not contains_all(self.checked_files, self.questions2files[q])]
+            questions = [q for q in questions if not contains_all(get_processed_files(), self.questions2files[q])]
 
             while len(questions) > 0:
                 cur_questions = questions[:MAX_ITEMS_IN_REQUEST]
@@ -148,19 +144,17 @@ class QuestionsTree:
                     cur_question = cur_questions[question_id - 1]
 
                     for file in self.questions2files[cur_question]:
-                        if file not in self.checked_files:
-                            result = get_file_questions_checker()(file, question, self.dispatcher)
-                            self.checked_files.add(file)
+                        result = get_file_questions_checker()(file, question, self.dispatcher)
 
-                            if result:
-                                answer = (result, file)
-                                print("Answer: " + result + " File: " + file)
-                                return answer
+                        if result:
+                            answer = (result, file)
+                            print("Answer: " + result + " File: " + file)
+                            return answer
 
                 cur_questions = set(cur_questions)
                 questions = [q for q in questions
                              if q not in cur_questions and
-                             not contains_all(self.checked_files, self.questions2files[q])]
+                             not contains_all(get_processed_files(), self.questions2files[q])]
 
         if answer is None and ignore_topic is None:
             return self._get_answer(question, topics_dict, topic)

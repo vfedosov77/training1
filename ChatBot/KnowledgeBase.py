@@ -30,54 +30,61 @@ class KnowledgeBase:
         self._inject_dependencies()
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
-        return self.keywords.get_answer(question)
+        assert self.keywords, "Project was not opened"
+
+        clear_processed_files()
+
+        res, path = self.keywords.get_answer(question)
+        if res:
+            return res, path
 
         assert self.tree, "Project was not opened"
-        context = add_project_description(ROOT_CONTEXT).\
-            replace('[CHAT_LOG]', self._format_chat_history(chat_history))
-
-        prompt = ROOT_PROMPT.replace('[QUESTION]', question)
-        self._on_step("The way to answer will be selected...", "Context: " + context + "\nPrompt: " + prompt)
-        result = self.ai_core.get_short_conversation_result(prompt, 2, context)
-        result = get_idx_from_response(result)
-
-        if result == 1:
-            self._on_step("The sources investigations is required to answer.", None)
-            return self.tree.get_answer(question)
-        elif result == 4:
-            self._on_step("The documentation investigations is required to answer.", None)
-            self._on_step("The documentation investigations is not implemented yet.", None, SELECTED_TEXT)
-            return None
-        elif result == 2:
-            self._on_step("The keywords index investigations is required to answer.", None)
-            prompt = KEYWORD_PROMPT.replace('[QUESTION]', question)
-            result = self.ai_core.get_short_conversation_result(prompt, 5, context)
-            self._on_step("Looking for the keyword: " + result, prompt)
-            results = []
-
-            if context.find(result) != -1 or question.find(result) != -1:
-                results = [item for item in self.keywords.find_keyword(result)]
-
-            if len(results) > 20:
-                self._on_step("Too many findings - the sources investigations is required to answer.", None)
-                return self.tree.get_answer(question)
-
-            for path in results:
-                result = get_file_questions_checker()(path, question, self.dispatcher)
-
-                if result is not None:
-                    return result, path
-            self._on_step("No findings - the sources investigations is required to answer.", None)
-            return self.tree.get_answer(question)
-        elif result == 3:
-            self._on_step("No sources/documentation investigation is required to answer.", None)
-            prompt = IMMEDIATELY_PROMPT.replace('[QUESTION]', question)
-            result = self.ai_core.get_short_conversation_result(prompt, 200, context)
-            self._on_step(result, prompt, SELECTED_TEXT)
-            return result, None
-
-        self._on_step("The sources investigations is required to answer.", str(result), SELECTED_TEXT)
         return self.tree.get_answer(question)
+        # context = add_project_description(ROOT_CONTEXT).\
+        #     replace('[CHAT_LOG]', self._format_chat_history(chat_history))
+        #
+        # prompt = ROOT_PROMPT.replace('[QUESTION]', question)
+        # self._on_step("The way to answer will be selected...", "Context: " + context + "\nPrompt: " + prompt)
+        # result = self.ai_core.get_short_conversation_result(prompt, 2, context)
+        # result = get_idx_from_response(result)
+
+        # if result == 1:
+        #     self._on_step("The sources investigations is required to answer.", None)
+        #     return self.tree.get_answer(question)
+        # elif result == 4:
+        #     self._on_step("The documentation investigations is required to answer.", None)
+        #     self._on_step("The documentation investigations is not implemented yet.", None, SELECTED_TEXT)
+        #     return None
+        # elif result == 2:
+        #     self._on_step("The keywords index investigations is required to answer.", None)
+        #     prompt = KEYWORD_PROMPT.replace('[QUESTION]', question)
+        #     result = self.ai_core.get_short_conversation_result(prompt, 5, context)
+        #     self._on_step("Looking for the keyword: " + result, prompt)
+        #     results = []
+        #
+        #     if context.find(result) != -1 or question.find(result) != -1:
+        #         results = [item for item in self.keywords.find_keyword(result)]
+        #
+        #     if len(results) > 20:
+        #         self._on_step("Too many findings - the sources investigations is required to answer.", None)
+        #         return self.tree.get_answer(question)
+        #
+        #     for path in results:
+        #         result = get_file_questions_checker()(path, question, self.dispatcher)
+        #
+        #         if result is not None:
+        #             return result, path
+        #     self._on_step("No findings - the sources investigations is required to answer.", None)
+        #     return self.tree.get_answer(question)
+        # elif result == 3:
+        #     self._on_step("No sources/documentation investigation is required to answer.", None)
+        #     prompt = IMMEDIATELY_PROMPT.replace('[QUESTION]', question)
+        #     result = self.ai_core.get_short_conversation_result(prompt, 200, context)
+        #     self._on_step(result, prompt, SELECTED_TEXT)
+        #     return result, None
+        #
+        # self._on_step("The sources investigations is required to answer.", str(result), SELECTED_TEXT)
+        # return self.tree.get_answer(question)
 
     def open_project(self):
         questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_CHECKED_ID))

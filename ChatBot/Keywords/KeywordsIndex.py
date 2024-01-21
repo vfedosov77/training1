@@ -43,8 +43,11 @@ class KeywordsIndex:
         files2count = defaultdict(int)
 
         for keyword in found_keywords:
-            for file in self.keywords2files[keyword]:
-                files2count[file] += 1
+            files = self.keywords2files[keyword]
+
+            if len(files) < 10:
+                for file in files:
+                    files2count[file] += 1
 
         files2count = [(k, v) for k, v in files2count.items()]
         files2count.sort(key=lambda x: x[1], reverse=True)

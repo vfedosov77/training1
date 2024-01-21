@@ -6,6 +6,8 @@ from ChatBot.Common.Constants import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.JSONDataStorage import JSONDataStorage
 
+checked_files = set()
+
 
 class FileQuestionsChecker:
     def __init__(self, ai_core: AiCoreBase, storage: JSONDataStorage):
@@ -13,6 +15,11 @@ class FileQuestionsChecker:
         self.storage = storage
 
     def __call__(self, path, question, dispatcher: NotificationDispatcher, max_tockens=100) -> str:
+        if path in checked_files:
+            return None, None
+
+        checked_files.add(path)
+
         found_answer = False
 
         def check_answer(answer):
@@ -67,4 +74,13 @@ def get_file_questions_checker():
 def set_file_questions_checker(checker: FileQuestionsChecker):
     global instance
     instance = checker
+
+
+def clear_processed_files():
+    checked_files.clear()
+
+
+def get_processed_files():
+    return checked_files
+
 
