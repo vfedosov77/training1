@@ -19,13 +19,6 @@ MAX_CONVERSATION_STEPS = 5
 
 
 class MistralAiCore(AiCoreBase):
-    class FirstTransformerBlockModel(AutoModelForCausalLM):
-        def __init__(self, config):
-            super().__init__(config)
-
-        def forward(self, input_ids, **kwargs):
-            return self.transformer.layers[0](input_ids, **kwargs)[0]
-
     def __init__(self, only_tokenizer=False):
         bnb_config = BitsAndBytesConfig(
             load_in_8bit=True
