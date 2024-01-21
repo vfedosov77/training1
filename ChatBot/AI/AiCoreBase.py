@@ -116,3 +116,6 @@ class AiCoreBase(metaclass=ABCMeta):
             return False
 
         return None
+
+    def get_embeddings(self, text: str):
+        raise NotImplemented("get_embeddings() is not implemented for that AI model.")
