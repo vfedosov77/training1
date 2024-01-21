@@ -12,7 +12,7 @@ class FileQuestionsChecker:
         self.ai_core = ai_core
         self.storage = storage
 
-    def __call__(self, path, question, dispatcher: NotificationDispatcher, max_tockens=100):
+    def __call__(self, path, question, dispatcher: NotificationDispatcher, max_tockens=100) -> str:
         found_answer = False
 
         def check_answer(answer):
@@ -51,10 +51,10 @@ class FileQuestionsChecker:
 
         if found_answer and result != "__NOTHING__":
             dispatcher.on_event(result, file_content, ITEM_TO_HIGHLIGHT)
-            return result, path
+            return result
 
         dispatcher.on_event(f"No relevant info was found.", result, NORMAL_TEXT)
-        return None, None
+        return None
 
 
 instance: FileQuestionsChecker = None

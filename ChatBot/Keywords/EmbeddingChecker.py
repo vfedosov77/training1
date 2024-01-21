@@ -10,7 +10,7 @@ import os
 
 MODEL_ID = 'BAAI/bge-small-en-v1.5'
 KEYWORD_INDEX_FILE_NAME = "keywords.bin"
-KEYWORD_CACHE_FILE_NAME = "keywords_cache.bin"
+KEYWORD_CACHE_FILE_NAME = "keywords.bin.pkl"
 
 
 class EmbeddingChecker:
@@ -21,18 +21,17 @@ class EmbeddingChecker:
                                                           store,
                                                           namespace=MODEL_ID)
 
-        self.storage_path = os.path.join(get_config().get_project_path(), KEYWORD_INDEX_FILE_NAME)
-
-        if os.path.exists(self.storage_path):
-            self.vector_store = FAISS.load_local(folder_path="C:\\Users\\vfedo\\PycharmProjects\\training1\\data",
-                                                embeddings=self.embedder)
+        if os.path.exists(os.path.join(get_config().get_project_path(), KEYWORD_INDEX_FILE_NAME + ".faiss")):
+            self.vector_store = FAISS.load_local(folder_path=get_config().get_project_path(),
+                                                 index_name = KEYWORD_INDEX_FILE_NAME,
+                                                 embeddings=self.embedder)
         else:
             self.vector_store = None
 
     def find_keyword_matches(self, keyword: str, count: int = 3):
         embeddings = self.embed_text(keyword)
         matches = self.vector_store.similarity_search_by_vector(embeddings, k=count, distance_threshold=0.0)
-        return matches
+        return [m.page_content for m in matches]
 
     def embed_text(self, text: str):
         embedding_vector = self.embedder.embed_query(text)
@@ -43,6 +42,6 @@ class EmbeddingChecker:
         documents = [Document(page_content=txt) for txt in keywords]
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
         esops_documents = text_splitter.transform_documents(documents)
-        self.vector_store.from_documents(esops_documents, self.embedder)
+        self.vector_store = FAISS.from_documents(esops_documents, self.embedder)
         self.vector_store.save_local(folder_path=get_config().get_project_path(), index_name=KEYWORD_INDEX_FILE_NAME)
 

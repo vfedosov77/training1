@@ -1,3 +1,4 @@
+from ChatBot.Keywords.IndexBuilder import IndexBuilder
 from ChatBot.Prompts.Prompts import *
 from ChatBot.QuestionsTree.QuestionsTree import QuestionsTree
 from ChatBot.QuestionsTree.TreeBuilder import TreeBuilder
@@ -29,6 +30,8 @@ class KnowledgeBase:
         self._inject_dependencies()
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
+        return self.keywords.get_answer(question)
+
         assert self.tree, "Project was not opened"
         context = add_project_description(ROOT_CONTEXT).\
             replace('[CHAT_LOG]', self._format_chat_history(chat_history))
@@ -62,8 +65,8 @@ class KnowledgeBase:
             for path in results:
                 result = get_file_questions_checker()(path, question, self.dispatcher)
 
-                if result and result[0] is not None:
-                    return result
+                if result is not None:
+                    return result, path
             self._on_step("No findings - the sources investigations is required to answer.", None)
             return self.tree.get_answer(question)
         elif result == 3:
@@ -77,9 +80,6 @@ class KnowledgeBase:
         return self.tree.get_answer(question)
 
     def open_project(self):
-        project_path = get_config().get_project_path()
-        self.keywords = KeywordsIndex(project_path, self.code_suffices, self.dispatcher)
-
         questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_CHECKED_ID))
         main_topics = self.storage.get_json(MAIN_TOPICS_ID)
 
@@ -88,6 +88,7 @@ class KnowledgeBase:
             exit(-1)
 
         self.tree = QuestionsTree(questions2files, main_topics, self.ai_core, self.storage, self.dispatcher)
+        self.keywords = KeywordsIndex(self.ai_core, self.storage, self.dispatcher)
 
     def index_project(self):
         project_path = get_config().get_project_path()
@@ -127,8 +128,13 @@ class KnowledgeBase:
         dfs(project_path)
         self._create_questions(project_path)
 
-        builder = TreeBuilder()
-        self.tree = builder(self.ai_core, self.storage, self.dispatcher)
+        tree_builder = TreeBuilder()
+        self.tree = tree_builder(self.ai_core, self.storage, self.dispatcher)
+
+        index_builder = IndexBuilder()
+        index_builder(self.ai_core, self.storage, self.dispatcher)
+
+        self.keywords = KeywordsIndex(self.ai_core, self.storage, self.dispatcher)
 
         self._on_step("Index was successfully created.", None, SELECTED_TEXT)
 

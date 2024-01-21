@@ -149,12 +149,12 @@ class QuestionsTree:
 
                     for file in self.questions2files[cur_question]:
                         if file not in self.checked_files:
-                            result, path = get_file_questions_checker()(file, question, self.dispatcher)
+                            result = get_file_questions_checker()(file, question, self.dispatcher)
                             self.checked_files.add(file)
 
                             if result:
-                                answer = (result, path)
-                                print("Answer: " + result + " File: " + path)
+                                answer = (result, file)
+                                print("Answer: " + result + " File: " + file)
                                 return answer
 
                 cur_questions = set(cur_questions)

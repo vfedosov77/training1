@@ -3,6 +3,7 @@ from ChatBot.QuestionsTree.QuestionsChecker import QuestionsChecker
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Common.Constants import *
 from ChatBot.Common.Utils import *
+from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.Prompts.TopicsTreePrompts import *
 from ChatBot.Prompts.PromptUtils import *
 from ChatBot.AI.AiCoreBase import AiCoreBase
@@ -12,7 +13,7 @@ from typing import Dict, Set
 
 
 class TreeBuilder:
-    def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher):
+    def __call__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher: NotificationDispatcher):
         questions2files = storage.get_json(QUESTIONS2FILES_CHECKED_ID)
 
         if questions2files is None:

@@ -21,7 +21,7 @@ class QuestionsChecker:
             passed = False
 
             for i in range(2):
-                if get_file_questions_checker()(file, question, fake_dispatcher, 20)[0] is not None:
+                if get_file_questions_checker()(file, question, fake_dispatcher, 20) is not None:
                     passed = True
                     break
 
