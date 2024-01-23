@@ -14,24 +14,21 @@ class FileQuestionsChecker:
         self.ai_core = ai_core
         self.storage = storage
 
-    def __call__(self, path, question, dispatcher: NotificationDispatcher, max_tockens=100) -> str:
+    def __call__(self, path, question, dispatcher: NotificationDispatcher, max_tokens=100):
+        kind = get_config().get_file_kind(path)
+
+        if kind == FILE_KIND:
+            return self.check_source_file(path, question, dispatcher, max_tokens)
+        elif kind == DOCUMENT_KIND:
+            return self.check_document(path, question, dispatcher, max_tokens)
+
+        raise NotImplementedError()
+
+    def check_source_file(self, path, question, dispatcher: NotificationDispatcher, max_tokens) -> str:
         if path in checked_files:
             return None, None
 
         checked_files.add(path)
-
-        found_answer = False
-
-        def check_answer(answer):
-            nonlocal found_answer
-
-            if answer.find("NOTHING") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
-                header = "Found the answer: " if answer.find("NOTHING") == -1 else "Found a relevant info: "
-                dispatcher.on_event(header + answer.replace("__NOTHING__", "NOT_SURE"), file_content, SELECTED_TEXT)
-                found_answer = True
-                return False
-
-            return True
 
         file_content = get_file_content(path)
         parent = os.path.dirname(path)
@@ -46,18 +43,82 @@ class FileQuestionsChecker:
             replace("[FILE_NAME]", file_name). \
             replace("[SOURCES]", file_content)
 
-        dispatcher.on_event(f"Check file {file_name} content.",
-                                 "Context: \n" + context + "\nPrompt:\n" + prompt,
-                                 NORMAL_TEXT)
+        return self._get_related_item_in_file(prompt, context, file_name, file_content, dispatcher, max_tokens)
+
+    def check_document(self, path, question, dispatcher: NotificationDispatcher, max_tokens) -> str:
+        if path in checked_files:
+            return None, None
+
+        checked_files.add(path)
+
+        file_content = get_file_content(path)
+        file_name = os.path.basename(path)
+
+        context = add_project_description(CHECK_DOCUMENT_CONTEXT)
+        prompt = CHECK_DOCUMENT_PROMPT.replace("[QUESTION]", question). \
+            replace("[FILE_NAME]", file_name). \
+            replace("[SOURCES]", file_content)
+
+        return self._find_related_text(prompt, context, file_name, file_content, dispatcher, max_tokens)
+
+    @staticmethod
+    def _check_answer(answer):
+        if answer.find("NOTHING") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
+            return False
+
+        return True
+
+    def _get_related_item_in_file(self,
+                    prompt,
+                    context,
+                    file_name,
+                    content,
+                    dispatcher: NotificationDispatcher,
+                    max_tokens) -> str:
+        log_details = "Context: \n" + context + "\nPrompt:\n" + prompt
+        found_answer = False
+
+        def check_answer(answer):
+            nonlocal found_answer
+
+            if self._check_answer(answer):
+                header = "Found the answer: " if answer.find("NOTHING") == -1 else "Found a relevant info: "
+                dispatcher.on_event(header + answer.replace("__NOTHING__", "NOT_SURE"), log_details, SELECTED_TEXT)
+                found_answer = True
+
+            return True
+
+        dispatcher.on_event(f"Check file {file_name} content.", log_details, NORMAL_TEXT)
 
         result = self.ai_core.get_1_or_2_steps_conversation_result(prompt,
                                                                    ONLY_RELATED_ITEM_NAME_PROMPT,
                                                                    check_answer,
-                                                                   max_tockens,
+                                                                   max_tokens,
                                                                    context)
 
         if found_answer and result != "__NOTHING__":
-            dispatcher.on_event(result, file_content, ITEM_TO_HIGHLIGHT)
+            dispatcher.on_event(result, content, ITEM_TO_HIGHLIGHT)
+            return result
+
+        dispatcher.on_event(f"No relevant info was found.", result, NORMAL_TEXT)
+        return None
+
+    def _find_related_text(self,
+                    prompt,
+                    context,
+                    file_name,
+                    content,
+                    dispatcher: NotificationDispatcher,
+                    max_tokens) -> str:
+        log_details = "Context: \n" + context + "\nPrompt:\n" + prompt
+        dispatcher.on_event(f"Check file {file_name} content.", log_details, NORMAL_TEXT)
+
+        result = self.ai_core.get_short_conversation_result(prompt,
+                                                            max_tokens,
+                                                            context)
+        if self._check_answer(result):
+            header = "Found the answer: " if result.find("NOTHING") == -1 else "Found a relevant info: "
+            dispatcher.on_event(header + result.replace("__NOTHING__", "NOT_SURE"), log_details, SELECTED_TEXT)
             return result
 
         dispatcher.on_event(f"No relevant info was found.", result, NORMAL_TEXT)

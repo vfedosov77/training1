@@ -1,7 +1,9 @@
 import ChatBot.Common.Utils as u
+from ChatBot.Common.Constants import *
 
 import os
 from typing import List
+import pathlib as pl
 
 
 class Configuration:
@@ -13,6 +15,9 @@ class Configuration:
         if self.path.endswith("/"):
             self.path = self.path[: -1]
 
+        self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
+        self.doc_suffices = {"txt", "md"}
+
 
     def get_project_description(self):
         return self.project_description
@@ -22,6 +27,17 @@ class Configuration:
 
     def is_path_excluded(self, path):
         return any(path.startswith(d) for d in self.black_list_dirs)
+
+    def get_file_kind(self, path):
+        suffix = pl.Path(path).suffix.lower()[1:]
+
+        if suffix in self.code_suffices:
+            return FILE_KIND
+
+        if suffix in self.doc_suffices:
+            return DOCUMENT_KIND
+
+        return UNKNOWN_KIND
 
 
 config: Configuration = None

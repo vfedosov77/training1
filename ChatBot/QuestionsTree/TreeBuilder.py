@@ -24,20 +24,16 @@ class TreeBuilder:
                 QuestionsChecker()(questions2files, ai_core, dispatcher)
                 storage.insert_json(QUESTIONS2FILES_CHECKED_ID, prepare_for_storage(questions2files))
 
-        if questions2files:
-            questions2files = remove_duplications(questions2files)
-            questions_simplified = True
-        else:
-            questions2files = self._fill_questions2files(storage)
-            questions_simplified = False
+        assert questions2files
+        questions2files = remove_duplications(questions2files)
 
         main_topics = self._fill_topics()
         main_topics = self._make_tree(main_topics, questions2files, storage, ai_core)
 
         tree = QuestionsTree(questions2files, main_topics, ai_core, storage, dispatcher)
 
-        if not questions_simplified and DuplicationsFinder()(tree, ai_core, dispatcher):
-            self._commit_changes(storage, main_topics, questions2files)
+        #if not questions_simplified and DuplicationsFinder()(tree, ai_core, dispatcher):
+        #    self._commit_changes(storage, main_topics, questions2files)
 
         return tree
 
@@ -144,7 +140,7 @@ class TreeBuilder:
         all_questions = set(questions2files.keys())
         TreeBuilder._distribute_questions(all_questions, main_topics, ai_core, False)
         #TreeBuilder._distribute_questions(all_questions, main_topics, ai_core, True)
-        TreeBuilder._commit_changes(storage, main_topics)
+        TreeBuilder._commit_changes(storage, main_topics, questions2files)
 
         #topics2questions = TreeBuilder._group_questions(questions2files)
         #TreeBuilder._fill_main_topics(topics2questions)

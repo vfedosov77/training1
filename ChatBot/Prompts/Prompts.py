@@ -51,10 +51,10 @@ Which topics would you add into FAQ looking at the following sources of the file
 
 
 ###Instruction###
-Questions must be regarding the functionality which is implemented in the file. 
+Topics must be regarding the functionality which is implemented in the file. 
 Better write less topics which covers the functionality of the file than more.
 You should provide for each topic only one short sentence. Only project-level functionality aspects are interesting. 
-YOU WILL BE PENALIZED FOR THE CLASS OR FILE NAME USAGE. Use better construction like "How is the function is implemented?" instead of "How function od class A implemented in file A.cpp?"
+YOU WILL BE PENALIZED FOR THE CLASS OR FILE NAME USAGE. Use better construction like "How is the function is implemented?" instead of "How function of class A implemented in file A.cpp?"
 Format:
 1. Functionality aspect 1
 2. Functionality aspect 2
@@ -87,12 +87,46 @@ ROOT_PROMPT = """Which one of the following actions would you prefer to answer t
 2. See the project keywords index.
 3. Can provide the answer immediately - no further investigation is needed.
 WRITE ONLY THE NUMBER OF ACTION"""
-#4. See the documentation
-#Only one word can be checked - so you must be sure.
+
 
 KEYWORD_PROMPT = """Which keyword in the keywords index would you find to answer the following question of your colleague '[QUESTION]':
 WRITE ONLY THE KEYWORD"""
 
 IMMEDIATELY_PROMPT = """Answer the following question of the colleague: '[QUESTION]'"""
 
-# You will be penalized
+
+####################################Documents#######################################
+
+DOCUMENTS_QUESTIONS_GENERATOR_PROMPT = \
+"""I am working on a project which can be described as '[PROJECT_DESCRIPTION]'. 
+Here is the content of one of the documents of that folder "[FILE_NAME]":
+
+[SOURCES]
+
+I was forced to analyze this document because it is important for the understanding of the following essential topics of the project functionality (I am providing only a short description here):
+1. """
+
+DOCUMENTS_QUESTIONS_CONTEXT = """You are creating a big FAQ for a software project which can be described as '[PROJECT_DESCRIPTION]'. 
+FAQ will be used by software developers and managers.
+In that FAQ only essential topics of the project functionality must be included.
+Now you are working with one of documents of that project."""
+
+DOCUMENTS_QUESTIONS_PROMPT = \
+"""###Instruction###
+Which topics would you add into FAQ looking at the content of the document '[FILE_NAME]':
+
+
+###Sources###
+[SOURCES]
+
+
+###Instruction###
+Topics must be related to the info in the file. 
+Better write less topics which covers whole the content of the file than more.
+You should provide for each topic only one short sentence. Only project-level functionality aspects are interesting. 
+YOU WILL BE PENALIZED FOR THE FILE NAME USAGE.
+Format:
+1. Functionality aspect 1
+2. Functionality aspect 2
+...
+"""

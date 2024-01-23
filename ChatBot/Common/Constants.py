@@ -1,4 +1,6 @@
 FILE_KIND = "File"
+DOCUMENT_KIND = "Document"
+UNKNOWN_KIND = "Unknown"
 DIRECTORY_KIND = "Directory"
 QUESTIONS_FIELD = "questions"
 KIND_FIELD = "kind"

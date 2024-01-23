@@ -7,7 +7,6 @@ from ChatBot.QuestionsTree.FileQuestionChecker import *
 
 import torch
 import os
-import pathlib as pl
 import json
 from typing import List, Tuple
 
@@ -21,8 +20,6 @@ class KnowledgeBase:
     def __init__(self, ai_core, dispatcher: NotificationDispatcher, storage: JSONDataStorage):
         self.storage: JSONDataStorage = storage
         self.ai_core = ai_core
-        self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
-        self.doc_suffices = {"txt", "md"}
         self.tree = None
         self.keywords = None
         self.dispatcher = dispatcher
@@ -178,11 +175,16 @@ class KnowledgeBase:
                 if os.path.isdir(child_path):
                     dfs(child_path)
                 else:
-                    suffix = pl.Path(child).suffix.lower()[1:]
+                    kind = get_config().get_file_kind(child)
 
-                    if suffix in self.code_suffices:
+                    if kind == FILE_KIND:
                         try:
                             self._generate_file_questions(child_path)
+                        except ValueError:
+                            pass
+                    elif kind == DOCUMENT_KIND:
+                        try:
+                            self._generate_document_questions(child_path)
                         except ValueError:
                             pass
 
@@ -267,11 +269,7 @@ class KnowledgeBase:
         self.storage.insert_json(id, item_json)
 
     def _process_file(self, path):
-        suffix = pl.Path(path).suffix.lower()[1:]
-        is_code = suffix in self.code_suffices
-        is_doc = suffix in self.doc_suffices
-
-        if not is_code:# and not is_doc:
+        if get_config().get_file_kind(path) != FILE_KIND:
             raise ValueError()
 
         #print("File: " + path)
@@ -390,6 +388,54 @@ class KnowledgeBase:
             questions = parse_numbered_items(response)
             print("Parsed: " + str(questions))
             file_json[QUESTIONS_FIELD] = questions
+            self.storage.insert_json(file_id, file_json)
+            self._on_step(f"Questions for {rel_path} are generated", response)
+        except RuntimeError as e:
+            if not short_request:
+                print("GPU memory issue - try a short version of the request.")
+                torch.cuda.empty_cache()
+                self._generate_file_questions(path, True)
+            else:
+                print("ERROR! GPU memory issue during the short request.")
+                raise e
+
+    def _get_generated_document_questions(self, file_name, file_content):
+        tokens_count = self._get_tokens_count(file_content)
+
+        if self.ai_core.is_generation_preferred():
+            prompt = add_project_description(DOCUMENTS_QUESTIONS_GENERATOR_PROMPT).replace("[FILE_NAME]", file_name)\
+                .replace("[SOURCES]", file_content)
+
+            response = "1. " + self.ai_core.get_generated_text(prompt, tokens_count)
+        else:
+            context = add_project_description(DOCUMENTS_QUESTIONS_CONTEXT)
+            prompt = DOCUMENTS_QUESTIONS_PROMPT.replace("[FILE_NAME]", file_name).replace("[SOURCES]", file_content)
+
+            # response = self.ai_core.get_2_steps_conversation_result(prompt, NO_NAMES_PROMPT, tokens_count, context)[1]
+            response = self.ai_core.get_short_conversation_result(prompt, tokens_count, context)
+
+        return response
+
+    def _generate_document_questions(self, path, short_request=False):
+        file_name = os.path.basename(path)
+
+        file_id = get_file_id_by_full_path(path)
+        file_json = self.storage.get_json(file_id)
+
+        if file_json is not None:
+            assert QUESTIONS_FIELD in file_json and isinstance(file_json[QUESTIONS_FIELD], list)
+            return
+
+        rel_path = get_relative_path(path)
+        file_json = self._create_json_for_path(rel_path, DOCUMENT_KIND, "")
+
+        try:
+
+            response = self._get_generated_document_questions(file_name, get_file_content(rel_path))
+            questions = parse_numbered_items(response)
+            print("Parsed: " + str(questions))
+            file_json[QUESTIONS_FIELD] = questions
+
             self.storage.insert_json(file_id, file_json)
             self._on_step(f"Questions for {rel_path} are generated", response)
         except RuntimeError as e:
