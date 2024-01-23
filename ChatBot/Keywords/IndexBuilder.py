@@ -22,7 +22,7 @@ class IndexBuilder:
         count = 0
 
         for item in storage.get_all():
-            if PATH_FIELD in item and item[KIND_FIELD] == FILE_KIND:
+            if PATH_FIELD in item and (item[KIND_FIELD] == FILE_KIND or item[KIND_FIELD] == DOCUMENT_KIND):
                 keywords.extend(self._create_keywords(item[PATH_FIELD]))
                 count += 1
                 #if count > 20:
@@ -41,7 +41,11 @@ class IndexBuilder:
 
         name = os.path.basename(path)
         context = add_project_description(GET_KEYWORDS_CONTEXT).replace("[FILE_NAME]", name)
-        prompt = GET_KEYWORDS_PROMPT.replace("[SOURCES]", get_file_content(path))
+
+        prompt_template = GET_KEYWORDS_PROMPT if get_config().get_file_kind(path) == FILE_KIND \
+            else GET_DOCUMENT_KEYWORDS_PROMPT
+
+        prompt = prompt_template.replace("[SOURCES]", get_file_content(path))
         response = self.ai_core.get_short_conversation_result(prompt, 100, context)
         keywords = parse_numbered_items(response)
         print(keywords)

@@ -38,7 +38,7 @@ class EmbeddingChecker:
         return embedding_vector
 
     def create_storage(self, keywords: List[str]):
-        assert self.vector_store is None, "Already created"
+        #assert self.vector_store is None, "Already created"
         documents = [Document(page_content=txt) for txt in keywords]
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
         esops_documents = text_splitter.transform_documents(documents)

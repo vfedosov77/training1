@@ -123,6 +123,24 @@ class TreeBuilder:
         return result
 
     @staticmethod
+    def _distribute_new_questions(main_topics, questions2files, ai_core):
+        distributed_questions = set()
+
+        def search(node):
+            if isinstance(node, dict):
+                for child in node.values():
+                    search(child)
+            else:
+                assert isinstance(node, list)
+                distributed_questions.update(node)
+
+        search(main_topics)
+        not_distributed = set(questions2files.keys()) - distributed_questions
+
+        TreeBuilder._distribute_questions(not_distributed, main_topics, ai_core, False)
+
+
+    @staticmethod
     def _make_tree(main_topics, questions2files, storage: JSONDataStorage, ai_core: AiCoreBase):
         old_main_topics = storage.get_json(MAIN_TOPICS_ID)
 
@@ -132,7 +150,9 @@ class TreeBuilder:
 
             # all_questions = set(questions2files.keys())
             # TreeBuilder._distribute_questions(all_questions, old_main_topics, ai_core, True)
-            return TreeBuilder._merge_trees(main_topics, old_main_topics, ai_core, storage)
+            main_topics = TreeBuilder._merge_trees(main_topics, old_main_topics, ai_core, storage)
+            TreeBuilder._distribute_new_questions(main_topics, questions2files, ai_core)
+            return main_topics
 
         count = len(questions2files)
         print(f"Questions count: {count}")
@@ -147,7 +167,7 @@ class TreeBuilder:
         return main_topics
 
     @staticmethod
-    def _distribute_questions( questions, topics, ai_core: AiCoreBase, only_for_small_groups: bool):
+    def _distribute_questions(questions, topics, ai_core: AiCoreBase, only_for_small_groups: bool):
         for question in questions:
             detected = TreeBuilder._get_topic_for_question(question, topics, ai_core)
 

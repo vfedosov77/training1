@@ -64,9 +64,9 @@ class FileQuestionsChecker:
     @staticmethod
     def _check_answer(answer):
         if answer.find("NOTHING") == -1 or answer.find("o needs for ") != -1 or len(answer) > 200:
-            return False
+            return True
 
-        return True
+        return False
 
     def _get_related_item_in_file(self,
                     prompt,
@@ -85,6 +85,7 @@ class FileQuestionsChecker:
                 header = "Found the answer: " if answer.find("NOTHING") == -1 else "Found a relevant info: "
                 dispatcher.on_event(header + answer.replace("__NOTHING__", "NOT_SURE"), log_details, SELECTED_TEXT)
                 found_answer = True
+                return False
 
             return True
 

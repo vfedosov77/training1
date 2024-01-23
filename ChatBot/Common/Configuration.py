@@ -16,7 +16,7 @@ class Configuration:
             self.path = self.path[: -1]
 
         self.code_suffices = {"cpp", "c", "h", "hpp", "java", "py"}
-        self.doc_suffices = {"txt", "md"}
+        self.doc_suffices = {"md"}
 
 
     def get_project_description(self):
