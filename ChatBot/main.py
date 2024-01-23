@@ -38,7 +38,7 @@ set_app_config(Configuration(path, project_description, folders_to_exclude))
 
 dispatcher = NotificationDispatcher()
 
-ai_core = AwsHostedAiCore()# Gpt35AICore()
+ai_core = Gpt35AICore()
 base = KnowledgeBase(ai_core, dispatcher, storage)
 app = Dialog(base, dispatcher)
 
