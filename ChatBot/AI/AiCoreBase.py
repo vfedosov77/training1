@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 
 class AiCoreBase(metaclass=ABCMeta):
     @abstractmethod
-    def get_generated_text(self, prompt: str, max_answer_tokens) -> str:
+    def get_generated_text(self, prompt: str, max_answer_tokens, context="") -> str:
         pass
 
     @abstractmethod
@@ -117,5 +117,3 @@ class AiCoreBase(metaclass=ABCMeta):
 
         return None
 
-    def get_embeddings(self, text: str):
-        raise NotImplemented("get_embeddings() is not implemented for that AI model.")

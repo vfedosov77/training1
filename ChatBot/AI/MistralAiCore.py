@@ -9,62 +9,56 @@ RESOURCES_FOLDER = "/content/drive/MyDrive/temp/Resources/"
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
 
 DEVICE = "cuda"
-TAG_PREFIX = "<|im_start|>"
-TAG_SUFFIX = "<|im_end|>\n"
-SYS_FORMAT = TAG_PREFIX + "system\n{}" + TAG_SUFFIX
-USER_FORMAT = TAG_PREFIX + "user\n{}" + TAG_SUFFIX
-ASSIST_FORMAT = TAG_PREFIX + "assistant\n"
-INPUT_TEXT_FORMAT = SYS_FORMAT + USER_FORMAT + ASSIST_FORMAT
 MAX_CONVERSATION_STEPS = 5
 
 
 class MistralAiCore(AiCoreBase):
-    def __init__(self, only_tokenizer=False):
+    def __init__(self):
         bnb_config = BitsAndBytesConfig(
             load_in_8bit=True
         )
 
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=RESOURCES_FOLDER)
 
-        if not only_tokenizer:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                MODEL_NAME,
-                cache_dir=RESOURCES_FOLDER,
-                load_in_8bit=True,
-                quantization_config=bnb_config,
-                torch_dtype=torch.bfloat16,
-                device_map="auto",
-                trust_remote_code=True)
 
-            # self.config = AutoConfig.from_pretrained(MODEL_NAME, cache_dir=RESOURCES_FOLDER)
-            # print("Window: " + str(config.max_position_embeddings))
+        self.model = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME,
+            cache_dir=RESOURCES_FOLDER,
+            load_in_8bit=True,
+            quantization_config=bnb_config,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            trust_remote_code=True)
 
-            self.text_generation_pipe = pipeline(
-                "text-generation",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                torch_dtype=torch.bfloat16,
-                device_map="auto"
-            )
+        # self.config = AutoConfig.from_pretrained(MODEL_NAME, cache_dir=RESOURCES_FOLDER)
+        # print("Window: " + str(config.max_position_embeddings))
 
-            self.conversational_pipe = pipeline(
-                "conversational",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                torch_dtype=torch.bfloat16,
-                device_map="auto"
-            )
-        else:
-            raise NotImplemented()
+        self.text_generation_pipe = pipeline(
+            "text-generation",
+            model=self.model,
+            tokenizer=self.tokenizer,
+            torch_dtype=torch.bfloat16,
+            device_map="auto"
+        )
+
+        self.conversational_pipe = pipeline(
+            "conversational",
+            model=self.model,
+            tokenizer=self.tokenizer,
+            torch_dtype=torch.bfloat16,
+            device_map="auto"
+        )
 
     def is_generation_preferred(self):
         return True
 
-    def get_generated_text(self, prompt: str, max_answer_tokens) -> str:
-        print("Prompt: " + prompt)
+    def get_generated_text(self, prompt: str, max_answer_tokens, context) -> str:
+        context = '<<SYS>>\\n' + context.strip() + '\\n<</SYS>>\\n\\n' if context else ""
+        message = context + prompt
+        print("Prompt: " + message)
 
         sequences = self.text_generation_pipe(
-            prompt,
+            message,
             do_sample=False,
             max_new_tokens=max_answer_tokens,
             temperature=0.3,
@@ -105,10 +99,4 @@ class MistralAiCore(AiCoreBase):
 
         raise BrokenPipeError()
 
-    # def get_embeddings(self, text: str):
-    #     self.core_embeddings_model.embed_query(text)
-    #     encoded_input = self.tokenizer(text, truncation=True, padding=True)
-    #     input_ids = encoded_input["input_ids"]
-    #     embeddings = self.model.get_input_embeddings().weight[input_ids, :]
-    #     return embeddings
 

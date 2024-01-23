@@ -1,8 +1,6 @@
 import openai
-
+from ChatBot.Common.Constants import *
 from ChatBot.AI.AiCoreBase import AiCoreBase
-
-MAX_CONVERSATION_STEPS=5
 
 
 class Gpt35AICore(AiCoreBase):

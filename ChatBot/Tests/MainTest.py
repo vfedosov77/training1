@@ -1,4 +1,3 @@
-from ChatBot.AI.Gpt35AICore import Gpt35AICore
 from ChatBot.KnowledgeBase import KnowledgeBase
 from ChatBot.UI.Dialog import Dialog
 from ChatBot.Common.Constants import *
@@ -6,6 +5,7 @@ from ChatBot.Common.Configuration import *
 from ChatBot.Common.NotificationDispatcher import NotificationDispatcher
 from ChatBot.JSONDataStorage import JSONDataStorage
 from ChatBot.Keywords.EmbeddingChecker import EmbeddingChecker
+from ChatBot.AI.Gpt35AICore import Gpt35AICore
 
 from collections import defaultdict
 import sys, os
@@ -60,6 +60,10 @@ def test():
     for question in questions:
         val = results[question]
         print(f"{question}: {val}")
+
+
+
+
 
 
 
