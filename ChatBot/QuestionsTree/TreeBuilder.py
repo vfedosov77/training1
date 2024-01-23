@@ -50,7 +50,9 @@ class TreeBuilder:
         questions2files: Dict[str, Set] = dict()
 
         for item in storage.get_all():
-            if PATH_FIELD in item and QUESTIONS_FIELD in item:
+            if PATH_FIELD in item and \
+               QUESTIONS_FIELD in item and \
+               get_config().get_file_kind(item[PATH_FIELD]) != UNKNOWN_KIND:
                 path = item[PATH_FIELD]
                 questions2files.update({question: {path} for question in item[QUESTIONS_FIELD] if question.strip()})
 
