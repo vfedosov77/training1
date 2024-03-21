@@ -17,12 +17,11 @@ Format the result as:
 ..."""
 
 KEYPOINTS_FROM_QUESTION_CONTEXT = """You are new developer on a software project which is '[PROJECT_DESCRIPTION]'. 
-And you are must find any info regarding the a topic and find the corresponding code part. 
+And you are must find any info regarding the a question and find the corresponding code part. 
 There is a keywords index on that project which allows to find corresponding source file by a keyword."""
 
-KEYPOINTS_FROM_QUESTION_PROMPT = """Which keywords would you use for the topic:
-[QUESTION]
-Before to write a keyword take into account if it allows to reduce the amount of corresponding source files which. 
+KEYPOINTS_FROM_QUESTION_PROMPT = """Which keywords would you use for the question: "[QUESTION]"?
+Before to write a keyword take into account if it allows to reduce the amount of corresponding source files. 
 If some keyword is not able to make the search narrow - don't write it.
 Format the result as:
 1. Keyword1

@@ -128,7 +128,7 @@ class FileQuestionsChecker:
 
 instance: FileQuestionsChecker = None
 
-
+#TODO: refactor to use in session
 def get_file_questions_checker():
     return instance
 

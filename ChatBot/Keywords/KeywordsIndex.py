@@ -11,16 +11,16 @@ from ChatBot.Prompts.KeywordsPrompts import *
 
 from collections import defaultdict
 
-from ChatBot.QuestionsTree.FileQuestionChecker import get_file_questions_checker
+from ChatBot.QuestionsTree.FileQuestionChecker import FileQuestionsChecker
 
 
 class KeywordsIndex:
-    def __init__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher: NotificationDispatcher):
+    def __init__(self, ai_core: AiCoreBase, storage: JSONDataStorage, dispatcher: NotificationDispatcher, fq_checker: FileQuestionsChecker):
         self.ai_core = ai_core
         self.storage: JSONDataStorage = storage
         self.dispatcher = dispatcher
         self.checker = EmbeddingChecker()
-
+        self.file_questions_checker = fq_checker
         self.keywords2files = defaultdict(list)
 
         for item in storage.get_all():
@@ -54,7 +54,7 @@ class KeywordsIndex:
         files2count = files2count[:3]
 
         for file, _ in files2count:
-            result = get_file_questions_checker()(file, question, self.dispatcher)
+            result = self.file_questions_checker(file, question, self.dispatcher)
             if result:
                 # self.dispatcher.on_event("Found the answer: " + result, None, SELECTED_TEXT)
                 return result, file

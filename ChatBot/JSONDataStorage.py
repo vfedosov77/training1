@@ -9,6 +9,20 @@ class JSONDataStorage:
         self.conn = None
         self._initialize_db()
 
+    def __del__(self):
+        if self.conn:
+            self.conn.close()
+            del self.conn
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            self.conn.close()
+            del self.conn
+            self.conn = None
+
     def _initialize_db(self):
         # Check if the database file exists, and connect to it
         db_exists = os.path.exists(self.db_file)

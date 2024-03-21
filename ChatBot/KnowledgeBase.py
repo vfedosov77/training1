@@ -24,19 +24,26 @@ class KnowledgeBase:
         self.keywords = None
         self.dispatcher = dispatcher
 
-        self._inject_dependencies()
+        #self._inject_dependencies()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     def get_answer(self, question, chat_history: List[Tuple[str, str]]):
         assert self.keywords, "Project was not opened"
 
-        clear_processed_files()
+        #clear_processed_files()
 
         res, path = self.keywords.get_answer(question)
-        if res:
-            return res, path
 
-        assert self.tree, "Project was not opened"
-        return self.tree.get_answer(question)
+        return res, path
+
+        #assert self.tree, "Project was not opened"
+        #return self.tree.get_answer(question)
+
         # context = add_project_description(ROOT_CONTEXT).\
         #     replace('[CHAT_LOG]', self._format_chat_history(chat_history))
         #
@@ -84,15 +91,15 @@ class KnowledgeBase:
         # return self.tree.get_answer(question)
 
     def open_project(self):
-        questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_CHECKED_ID))
-        main_topics = self.storage.get_json(MAIN_TOPICS_ID)
+        #questions2files = remove_duplications(self.storage.get_json(QUESTIONS2FILES_CHECKED_ID))
+        #main_topics = self.storage.get_json(MAIN_TOPICS_ID)
 
-        if questions2files is None or main_topics is None:
-            print("Index is not finished or broken. Please execute index.py.")
-            exit(-1)
+        #if questions2files is None or main_topics is None:
+        #    print("Index is not finished or broken. Please execute index.py.")
+        #    exit(-1)
 
-        self.tree = QuestionsTree(questions2files, main_topics, self.ai_core, self.storage, self.dispatcher)
-        self.keywords = KeywordsIndex(self.ai_core, self.storage, self.dispatcher)
+        #self.tree = QuestionsTree(questions2files, main_topics, self.ai_core, self.storage, self.dispatcher)
+        self.keywords = KeywordsIndex(self.ai_core, self.storage, self.dispatcher, FileQuestionsChecker(self.ai_core, self.storage))
 
     def index_project(self):
         project_path = get_config().get_project_path()
@@ -132,18 +139,18 @@ class KnowledgeBase:
         dfs(project_path)
         self._create_questions(project_path)
 
-        tree_builder = TreeBuilder()
-        self.tree = tree_builder(self.ai_core, self.storage, self.dispatcher)
+        #tree_builder = TreeBuilder()
+        #self.tree = tree_builder(self.ai_core, self.storage, self.dispatcher)
 
-        index_builder = IndexBuilder()
-        index_builder(self.ai_core, self.storage, self.dispatcher)
+        #index_builder = IndexBuilder()
+        #index_builder(self.ai_core, self.storage, self.dispatcher)
 
         self.keywords = KeywordsIndex(self.ai_core, self.storage, self.dispatcher)
 
         self._on_step("Index was successfully created.", None, SELECTED_TEXT)
 
-    def _inject_dependencies(self):
-        set_file_questions_checker(FileQuestionsChecker(self.ai_core, self.storage))
+    #def _inject_dependencies(self):
+    #    set_file_questions_checker(FileQuestionsChecker(self.ai_core, self.storage))
 
     def _format_chat_history(self, history):
         return "".join(role + ": " + message + "\n" for role, message in history)
